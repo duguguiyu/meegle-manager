@@ -73,7 +73,7 @@ class TimelineExtractor:
         """
         if self._projects_cache is None:
             logger.info("Loading projects data")
-            self._projects_cache = self.sdk.work_items.get_all_projects()
+            self._projects_cache = self.sdk.work_items.get_all_work_items()
             logger.info(f"Loaded {len(self._projects_cache)} projects")
         
         return self._projects_cache

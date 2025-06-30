@@ -22,15 +22,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def example_timeline_extraction():
+def example_timeline_extraction(sdk: MeegleSDK):
     """Timeline extraction example"""
     print("=" * 50)
     print("Timeline Extraction Example")
     print("=" * 50)
     
     try:
-        # Initialize SDK and extractor
-        sdk = MeegleSDK()
+        # Initialize extractor
         extractor = TimelineExtractor(sdk)
         
         # Example chart ID
@@ -111,15 +110,14 @@ def example_csv_export(timeline_data: TimelineData):
         return None
 
 
-def example_timeline_filtering():
+def example_timeline_filtering(sdk: MeegleSDK):
     """Timeline filtering example"""
     print("\n" + "=" * 50)
     print("Timeline Filtering Example")
     print("=" * 50)
     
     try:
-        # Initialize SDK and extractor
-        sdk = MeegleSDK()
+        # Initialize extractor
         extractor = TimelineExtractor(sdk)
         
         # Extract timeline data
@@ -156,15 +154,14 @@ def example_timeline_filtering():
         print(f"❌ Error in filtering example: {e}")
 
 
-def example_multiple_exports():
+def example_multiple_exports(sdk: MeegleSDK):
     """Multiple exports example"""
     print("\n" + "=" * 50)
     print("Multiple Exports Example")
     print("=" * 50)
     
     try:
-        # Initialize SDK and extractor
-        sdk = MeegleSDK()
+        # Initialize extractor
         extractor = TimelineExtractor(sdk)
         
         # Get chart data
@@ -197,30 +194,26 @@ def example_multiple_exports():
         print(f"❌ Error in multiple exports: {e}")
 
 
-def example_complete_workflow():
+def example_complete_workflow(sdk: MeegleSDK):
     """Complete workflow example"""
     print("\n" + "=" * 50)
     print("Complete Workflow Example")
     print("=" * 50)
     
     try:
-        # Step 1: Initialize SDK
-        print("Step 1: Initializing SDK...")
-        sdk = MeegleSDK()
-        
-        # Step 2: Test connection
-        print("Step 2: Testing connection...")
+        # Step 1: Test connection
+        print("Step 1: Testing connection...")
         if not sdk.get_client().test_connection():
             print("❌ Connection failed, stopping workflow")
             return
         
-        # Step 3: Initialize business layer
-        print("Step 3: Initializing business layer...")
+        # Step 2: Initialize business layer
+        print("Step 2: Initializing business layer...")
         extractor = TimelineExtractor(sdk)
         exporter = CSVExporter()
         
-        # Step 4: Extract timeline data
-        print("Step 4: Extracting timeline data...")
+        # Step 3: Extract timeline data
+        print("Step 3: Extracting timeline data...")
         chart_id = "7452978372562386950"
         timeline_data = extractor.extract_timeline_by_chart_id(
             chart_id=chart_id,
@@ -231,15 +224,15 @@ def example_complete_workflow():
             print("❌ No timeline data extracted")
             return
         
-        # Step 5: Export to CSV
-        print("Step 5: Exporting to CSV...")
+        # Step 4: Export to CSV
+        print("Step 4: Exporting to CSV...")
         csv_file = exporter.export_timeline_to_csv(
             timeline_data=timeline_data,
             filename="complete_workflow"
         )
         
-        # Step 6: Show results
-        print("Step 6: Workflow completed successfully!")
+        # Step 5: Show results
+        print("Step 5: Workflow completed successfully!")
         summary = timeline_data.get_summary()
         print(f"📊 Results:")
         print(f"  - Entries processed: {summary['total_entries']}")
@@ -255,18 +248,31 @@ def example_complete_workflow():
 
 def main():
     """Run all business layer examples"""
+    import time
+    
     print("🚀 Meegle Business Layer Examples")
     print("=" * 50)
     
     try:
-        # Run examples
-        timeline_data = example_timeline_extraction()
+        # Initialize SDK once and reuse
+        print("Initializing SDK...")
+        sdk = MeegleSDK()
+        print("✅ SDK initialized successfully")
+        print("=" * 50)
+        
+        # Run examples with delays to avoid rate limiting
+        timeline_data = example_timeline_extraction(sdk)
         if timeline_data:
             example_csv_export(timeline_data)
         
-        example_timeline_filtering()
-        example_multiple_exports()
-        example_complete_workflow()
+        time.sleep(3)  # Wait between API calls
+        example_timeline_filtering(sdk)
+        
+        time.sleep(3)
+        example_multiple_exports(sdk)
+        
+        time.sleep(3)
+        example_complete_workflow(sdk)
         
         print("\n" + "=" * 50)
         print("✅ All business layer examples completed!")

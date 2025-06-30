@@ -143,8 +143,20 @@ class BaseAPIClient:
                 
                 # Handle rate limiting
                 elif response.status_code == 429:
+                    # Log detailed 429 response information
+                    logger.error(f"=== 429 Rate Limit Details ===")
+                    logger.error(f"URL: {url}")
+                    logger.error(f"Headers: {dict(response.headers)}")
+                    logger.error(f"Response Text: {response.text}")
+                    try:
+                        response_json = response.json()
+                        logger.error(f"Response JSON: {response_json}")
+                    except:
+                        logger.error("Response is not valid JSON")
+                    logger.error(f"================================")
+                    
                     if attempt < self.max_retries - 1:
-                        rate_limit_delay = min(10 * (2 ** attempt), 60)
+                        rate_limit_delay = min(30 * (2 ** attempt), 300)  # Much longer waits: 30s, 60s, 120s
                         logger.warning(f"Rate limit hit (429). Waiting {rate_limit_delay} seconds...")
                         time.sleep(rate_limit_delay)
                         continue

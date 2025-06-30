@@ -23,7 +23,7 @@ class MeegleSDK:
         
         # Access different APIs
         chart_data = sdk.charts.get_chart_details("chart_id")
-        projects = sdk.work_items.get_projects()
+        work_items = sdk.work_items.get_work_items()
         users = sdk.users.get_all_users()
     """
     

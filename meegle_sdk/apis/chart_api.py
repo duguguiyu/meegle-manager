@@ -51,7 +51,7 @@ class ChartAPI:
             data = self.client.get(
                 endpoint=endpoint,
                 description=f"fetch chart {chart_id}",
-                base_delay=2.0  # Chart requests need longer delay
+                base_delay=10.0  # Chart requests need much longer delay due to strict rate limits
             )
             
             logger.info(f"Successfully retrieved chart data for ID: {chart_id}")

@@ -16,8 +16,9 @@ class WorkItemAPI:
     Work Item API client for managing Meegle work items
     
     Provides methods to:
-    - Get work items/projects
+    - Get work items
     - Query work item details
+    - Search work items
     - List work items with filters
     """
     
@@ -30,13 +31,13 @@ class WorkItemAPI:
         """
         self.client = client
     
-    def get_projects(self, item_types: Optional[List[str]] = None,
-                    page_size: int = 100, page_num: int = 1) -> List[Dict[str, Any]]:
+    def get_work_items(self, work_item_type_id: Optional[str] = None, 
+                      page_size: int = 100, page_num: int = 1) -> List[Dict[str, Any]]:
         """
-        Get work items/projects with pagination
+        Get work items with pagination
         
         Args:
-            item_types: List of item types to filter (e.g., ['story', 'epic'])
+            work_item_type_id: Work item type ID (optional, for filtering by type)
             page_size: Number of items per page
             page_num: Page number to retrieve
             
@@ -46,49 +47,91 @@ class WorkItemAPI:
         Raises:
             APIError: If work item retrieval fails
         """
-        endpoint = f"{self.client.project_key}/work_items"
+        if work_item_type_id:
+            # Work item API with specific type
+            endpoint = f"{self.client.project_key}/work_item_types/{work_item_type_id}/work_items"
+            logger.info(f"Fetching work items for type: {work_item_type_id}")
+        else:
+            # General work items endpoint
+            endpoint = f"{self.client.project_key}/work_items"
+            logger.info("Fetching all work items")
         
-        # Default item types
-        if item_types is None:
-            item_types = ["story", "epic", "task", "bug"]
-        
-        params = {
-            "item_types": item_types,
-            "page_size": page_size,
-            "page_num": page_num
-        }
-        
-        logger.info(f"Fetching work items (page {page_num}, size {page_size})")
+        logger.info(f"Using endpoint: {endpoint}")
         
         try:
+            # Try the work item endpoint
+            params = {}
+            if page_size != 100:
+                params["page_size"] = page_size
+            if page_num != 1:
+                params["page_num"] = page_num
+                
             data = self.client.get(
                 endpoint=endpoint,
-                params=params,
-                description=f"fetch work items page {page_num}",
+                params=params if params else None,
+                description=f"fetch work items (page {page_num})",
                 base_delay=1.5
             )
             
-            items = data.get('items', [])
-            total_count = data.get('total_count', 0)
+            # Handle different response formats
+            items = data if isinstance(data, list) else data.get('items', data.get('work_items', []))
             
-            logger.info(f"Retrieved {len(items)} work items (total: {total_count})")
+            logger.info(f"Retrieved {len(items)} work items")
             
             return items
             
         except APIError as e:
-            logger.error(f"Failed to retrieve work items: {e}")
+            logger.warning(f"Primary endpoint failed, trying alternatives: {e}")
+            
+            # Try alternative endpoint structures
+            alternative_endpoints = [
+                f"{self.client.project_key}/work_items/all",
+                f"{self.client.project_key}/items",
+                f"{self.client.project_key}/items/all"
+            ]
+            
+            for alt_endpoint in alternative_endpoints:
+                try:
+                    logger.info(f"Trying alternative endpoint: {alt_endpoint}")
+                    
+                    params = {}
+                    if work_item_type_id:
+                        params["work_item_type_id"] = work_item_type_id
+                    if page_size != 100:
+                        params["page_size"] = page_size
+                    if page_num != 1:
+                        params["page_num"] = page_num
+                    
+                    data = self.client.get(
+                        endpoint=alt_endpoint,
+                        params=params if params else None,
+                        description=f"fetch work items from {alt_endpoint}",
+                        base_delay=1.5
+                    )
+                    
+                    items = data if isinstance(data, list) else data.get('items', data.get('work_items', []))
+                    logger.info(f"Retrieved {len(items)} work items from alternative endpoint")
+                    return items
+                    
+                except APIError as alt_e:
+                    logger.warning(f"Alternative endpoint {alt_endpoint} failed: {alt_e}")
+                    continue
+            
+            # If all endpoints fail, raise the original error
+            logger.error(f"All work item endpoints failed. Original error: {e}")
             raise
+            
         except Exception as e:
             logger.error(f"Unexpected error retrieving work items: {e}")
             raise APIError(f"Failed to retrieve work items: {e}")
     
-    def get_all_projects(self, item_types: Optional[List[str]] = None,
-                        page_size: int = 100) -> List[Dict[str, Any]]:
+    def get_all_work_items(self, work_item_type_id: Optional[str] = None,
+                          page_size: int = 100) -> List[Dict[str, Any]]:
         """
         Get all work items across all pages
         
         Args:
-            item_types: List of item types to filter
+            work_item_type_id: Work item type ID (optional, for filtering by type)
             page_size: Number of items per page
             
         Returns:
@@ -101,8 +144,8 @@ class WorkItemAPI:
         
         while True:
             try:
-                items = self.get_projects(
-                    item_types=item_types,
+                items = self.get_work_items(
+                    work_item_type_id=work_item_type_id,
                     page_size=page_size,
                     page_num=page_num
                 )
@@ -125,19 +168,36 @@ class WorkItemAPI:
         logger.info(f"Retrieved {len(all_items)} total work items")
         return all_items
     
-    def get_work_item_details(self, item_key: str) -> Optional[Dict[str, Any]]:
+    def get_work_item_details(self, item_key: str, work_item_type_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Get detailed information for a specific work item
         
         Args:
             item_key: Work item key/ID
+            work_item_type_id: Work item type ID (optional, for type-specific endpoint)
             
         Returns:
             Work item details or None if not found
         """
-        endpoint = f"{self.client.project_key}/work_items/{item_key}"
+        # Try work item type specific endpoint first if type is provided
+        if work_item_type_id:
+            endpoint = f"{self.client.project_key}/work_item_types/{work_item_type_id}/work_items/{item_key}"
+            
+            try:
+                data = self.client.get(
+                    endpoint=endpoint,
+                    description=f"fetch work item {item_key} (type-specific)"
+                )
+                
+                logger.info(f"Retrieved details for work item: {item_key}")
+                return data
+                
+            except APIError as e:
+                logger.warning(f"Work item {item_key} not found with type endpoint, trying generic endpoint: {e}")
         
+        # Try generic endpoint
         try:
+            endpoint = f"{self.client.project_key}/work_items/{item_key}"
             data = self.client.get(
                 endpoint=endpoint,
                 description=f"fetch work item {item_key}"

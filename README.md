@@ -68,7 +68,7 @@ sdk = MeegleSDK(
 chart_data = sdk.charts.get_chart_details("chart_id")
 
 # 获取Work Items
-work_items = sdk.work_items.get_projects()
+work_items = sdk.work_items.get_work_items()
 
 # 获取用户信息
 users = sdk.users.get_all_users()

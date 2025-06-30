@@ -22,41 +22,38 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def example_basic_sdk_usage():
+def example_basic_sdk_usage(sdk: MeegleSDK):
     """Basic SDK usage example"""
     print("=" * 50)
     print("Basic SDK Usage Example")
     print("=" * 50)
     
     try:
-        # Initialize SDK
-        sdk = MeegleSDK()
-        
         # Test connection
         print("Testing connection...")
         if sdk.get_client().test_connection():
             print("✅ Connection successful!")
         else:
             print("❌ Connection failed!")
-            return
+            return False
         
         # Show client info
         client_info = sdk.get_client().get_client_info()
         print(f"Client Info: {client_info}")
+        return True
         
     except Exception as e:
         print(f"❌ Error: {e}")
+        return False
 
 
-def example_chart_api():
+def example_chart_api(sdk: MeegleSDK):
     """Chart API example"""
     print("\n" + "=" * 50)
     print("Chart API Example")
     print("=" * 50)
     
     try:
-        sdk = MeegleSDK()
-        
         # Example chart ID (replace with actual chart ID)
         chart_id = "7452978372562386950"
         
@@ -81,18 +78,21 @@ def example_chart_api():
         print(f"❌ Unexpected error: {e}")
 
 
-def example_work_items_api():
+def example_work_items_api(sdk: MeegleSDK):
     """Work Items API example"""
     print("\n" + "=" * 50)
     print("Work Items API Example")
     print("=" * 50)
     
     try:
-        sdk = MeegleSDK()
-        
         # Get first page of work items
         print("Fetching work items (first page)...")
-        work_items = sdk.work_items.get_projects(page_size=10, page_num=1)
+        # Use specific work item type ID, or None for all types
+        work_items = sdk.work_items.get_work_items(
+            work_item_type_id="642ec373f4af608bb3cb1c90",  # Project type (replace with your type ID)
+            page_size=10, 
+            page_num=1
+        )
         
         if work_items:
             print(f"✅ Retrieved {len(work_items)} work items")
@@ -111,15 +111,13 @@ def example_work_items_api():
         print(f"❌ Unexpected error: {e}")
 
 
-def example_teams_api():
+def example_teams_api(sdk: MeegleSDK):
     """Teams API example"""
     print("\n" + "=" * 50)
     print("Teams API Example")
     print("=" * 50)
     
     try:
-        sdk = MeegleSDK()
-        
         print("Fetching all teams...")
         teams = sdk.teams.get_all_teams()
         
@@ -144,15 +142,13 @@ def example_teams_api():
         print(f"❌ Unexpected error: {e}")
 
 
-def example_users_api():
+def example_users_api(sdk: MeegleSDK):
     """Users API example"""
     print("\n" + "=" * 50)
     print("Users API Example")
     print("=" * 50)
     
     try:
-        sdk = MeegleSDK()
-        
         print("Getting all users (with intelligent caching)...")
         users = sdk.users.get_all_users()
         
@@ -206,6 +202,8 @@ def example_error_handling():
 
 def main():
     """Run all SDK examples"""
+    import time
+    
     print("🚀 Meegle SDK Examples")
     print("=" * 50)
     
@@ -214,13 +212,31 @@ def main():
         config = get_meegle_config()
         print(f"Using base URL: {config['base_url']}")
         print(f"Using project: {config['project_key']}")
+        print("=" * 50)
         
-        # Run examples
-        example_basic_sdk_usage()
-        example_chart_api()
-        example_work_items_api()
-        example_teams_api()
-        example_users_api()
+        # Initialize SDK once and reuse
+        print("Initializing SDK...")
+        sdk = MeegleSDK()
+        print("✅ SDK initialized successfully")
+        
+        # Run examples with delays to avoid rate limiting
+        if not example_basic_sdk_usage(sdk):
+            print("❌ Basic usage failed, skipping other examples")
+            return
+            
+        time.sleep(3)  # Wait between API calls
+        example_chart_api(sdk)
+        
+        time.sleep(3)
+        example_work_items_api(sdk)
+        
+        time.sleep(3) 
+        example_teams_api(sdk)
+        
+        time.sleep(3)
+        example_users_api(sdk)
+        
+        time.sleep(2)
         example_error_handling()
         
         print("\n" + "=" * 50)
