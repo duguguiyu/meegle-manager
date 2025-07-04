@@ -72,7 +72,9 @@ class BaseAPIClient:
                      params: Optional[Dict] = None, 
                      json_data: Optional[Dict] = None,
                      description: str = "API request", 
-                     base_delay: float = 1.0) -> Dict[str, Any]:
+                     base_delay: float = 1.0,
+                     disable_retry: bool = False,
+                     custom_timeout: Optional[int] = None) -> Dict[str, Any]:
         """
         Make API request with retry mechanism
         
@@ -84,6 +86,8 @@ class BaseAPIClient:
             json_data: JSON request body
             description: Description for logging
             base_delay: Base delay between retries
+            disable_retry: If True, disable retry mechanism
+            custom_timeout: Custom timeout for this request (overrides default)
             
         Returns:
             API response data
@@ -96,14 +100,22 @@ class BaseAPIClient:
         url = f"{self.base_url}/{endpoint}"
         request_headers = self._get_headers(headers)
         
-        logger.debug(f"Making {method} request to: {url}")
+        # Use custom timeout if provided, otherwise use default
+        timeout = custom_timeout if custom_timeout is not None else self.request_timeout
         
-        for attempt in range(self.max_retries):
+        logger.debug(f"Making {method} request to: {url}")
+        if disable_retry:
+            logger.info(f"Retry disabled for {description}")
+        
+        # If retry is disabled, only attempt once
+        max_attempts = 1 if disable_retry else self.max_retries
+        
+        for attempt in range(max_attempts):
             try:
-                # Add delay for retries
-                if attempt > 0:
+                # Add delay for retries (only if retry is enabled)
+                if not disable_retry and attempt > 0:
                     wait_time = min(base_delay * (3 ** attempt), 30)
-                    logger.info(f"Retrying {description} (attempt {attempt + 1}/{self.max_retries})")
+                    logger.info(f"Retrying {description} (attempt {attempt + 1}/{max_attempts})")
                     logger.info(f"Waiting {wait_time:.1f} seconds before retry...")
                     time.sleep(wait_time)
                 elif base_delay > 0:
@@ -116,7 +128,7 @@ class BaseAPIClient:
                     headers=request_headers,
                     params=params,
                     json=json_data,
-                    timeout=self.request_timeout
+                    timeout=timeout
                 )
                 
                 logger.debug(f"Response status: {response.status_code}")
@@ -155,21 +167,26 @@ class BaseAPIClient:
                         logger.error("Response is not valid JSON")
                     logger.error(f"================================")
                     
-                    if attempt < self.max_retries - 1:
+                    # If retry is disabled, don't retry on rate limit
+                    if disable_retry:
+                        logger.error(f"Rate limit hit (429) and retry is disabled")
+                        raise RateLimitError(f"Rate limit exceeded (retry disabled)")
+                    
+                    if attempt < max_attempts - 1:
                         rate_limit_delay = min(30 * (2 ** attempt), 300)  # Much longer waits: 30s, 60s, 120s
                         logger.warning(f"Rate limit hit (429). Waiting {rate_limit_delay} seconds...")
                         time.sleep(rate_limit_delay)
                         continue
                     else:
-                        logger.error(f"Rate limit exceeded after {self.max_retries} attempts")
-                        raise RateLimitError(f"Rate limit exceeded after {self.max_retries} attempts")
+                        logger.error(f"Rate limit exceeded after {max_attempts} attempts")
+                        raise RateLimitError(f"Rate limit exceeded after {max_attempts} attempts")
                 
                 # Handle authentication errors
                 elif response.status_code in [401, 403]:
                     logger.error(f"Authentication error: {response.status_code}")
                     # Invalidate current token
                     self.token_manager.invalidate_token()
-                    if attempt < self.max_retries - 1:
+                    if not disable_retry and attempt < max_attempts - 1:
                         # Try to get a new token for retry
                         continue
                     else:
@@ -177,7 +194,7 @@ class BaseAPIClient:
                 
                 # Handle other HTTP errors
                 else:
-                    if attempt == self.max_retries - 1:
+                    if attempt == max_attempts - 1:
                         logger.error(f"HTTP error {response.status_code}: {response.text}")
                         raise APIError(f"HTTP {response.status_code}: {response.text}", response.status_code)
                     else:
@@ -185,14 +202,14 @@ class BaseAPIClient:
                         
             except requests.RequestException as e:
                 logger.warning(f"Network error during {description}: {e}")
-                if attempt == self.max_retries - 1:
+                if attempt == max_attempts - 1:
                     raise APIError(f"Network error: {e}")
             except (AuthenticationError, RateLimitError):
                 # Re-raise these specific exceptions
                 raise
             except Exception as e:
                 logger.warning(f"Unexpected error during {description}: {e}")
-                if attempt == self.max_retries - 1:
+                if attempt == max_attempts - 1:
                     raise APIError(f"Unexpected error: {e}")
         
         raise APIError(f"Max retries exceeded for {description}")

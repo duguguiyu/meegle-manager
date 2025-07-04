@@ -19,6 +19,15 @@ class ChartAPI:
     - Get chart details
     - Retrieve chart data
     - Query chart information
+    
+    Note:
+        Chart API has special handling for performance and concurrency:
+        - Uses 5-minute timeout (300 seconds) instead of default 30 seconds
+        - Disables retry mechanism to prevent concurrency issues
+        - Uses 10-second base delay between requests
+        
+        This is required because chart requests are very slow and the server
+        does not allow concurrent chart requests.
     """
     
     def __init__(self, client: BaseAPIClient):
@@ -51,7 +60,9 @@ class ChartAPI:
             data = self.client.get(
                 endpoint=endpoint,
                 description=f"fetch chart {chart_id}",
-                base_delay=10.0  # Chart requests need much longer delay due to strict rate limits
+                base_delay=10.0,  # Chart requests need much longer delay due to strict rate limits
+                disable_retry=True,  # Disable retry for chart requests to avoid concurrency issues
+                custom_timeout=300  # Use 5-minute timeout for chart requests as they can be very slow
             )
             
             logger.info(f"Successfully retrieved chart data for ID: {chart_id}")
@@ -116,7 +127,9 @@ class ChartAPI:
         try:
             data = self.client.get(
                 endpoint=endpoint,
-                description="list charts"
+                description="list charts",
+                disable_retry=True,  # Disable retry for chart requests to avoid concurrency issues
+                custom_timeout=300  # Use 5-minute timeout for chart requests as they can be very slow
             )
             
             logger.info(f"Retrieved chart list for project: {project}")
