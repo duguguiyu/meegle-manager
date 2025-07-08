@@ -81,12 +81,14 @@ class TimelineExtractor:
         users = self.get_users_cache()
         
         # Try to find user by various name fields
-        for user in users:
+        for user_key, user in users.items():
             # Check displayName, name, username fields
             if (user.get('displayName') == username or 
                 user.get('name') == username or 
                 user.get('username') == username or
-                user.get('login') == username):
+                user.get('login') == username or
+                user.get('name_cn') == username or
+                user.get('name_en') == username):
                 return user.get('email', user.get('emailAddress', f"{username}@unknown.com"))
         
         # If not found, generate email from username
@@ -98,12 +100,12 @@ class TimelineExtractor:
         
         for project in projects:
             # Check various possible field names for project code
-            project_fields = project.get('fields', {}) if 'fields' in project else project
+            project_fields = project.get('fields', []) if 'fields' in project else []
             
-            # Check direct fields and nested fields
+            # Check direct fields first
             code_fields = ['code', 'project_code', 'projectCode', 'name', 'title', 'key']
             for field in code_fields:
-                field_value = project_fields.get(field) or project.get(field)
+                field_value = project.get(field)
                 if field_value == project_code:
                     # Extract project information
                     project_info = {
@@ -127,10 +129,19 @@ class TimelineExtractor:
         
         for story in stories:
             # Check various possible field names for story ID
+            story_fields = story.get('fields', []) if 'fields' in story else []
+            
+            # Extract field values from the fields list
+            fields_dict = {}
+            if isinstance(story_fields, list):
+                for field in story_fields:
+                    if isinstance(field, dict) and 'field_key' in field and 'field_value' in field:
+                        fields_dict[field['field_key']] = field['field_value']
+            
             story_id_fields = [
                 story.get('id'),
-                story.get('fields', {}).get('id') if 'fields' in story else None,
-                story.get('fields', {}).get('System.Id') if 'fields' in story else None,
+                fields_dict.get('id'),
+                fields_dict.get('System.Id'),
                 story.get('workItemId'),
                 story.get('key')
             ]
@@ -169,25 +180,32 @@ class TimelineExtractor:
                 elif isinstance(value, str):
                     return value
         
-        # Try nested fields structure
-        fields = work_item.get('fields', {})
-        for field_name in field_names:
-            if field_name in fields:
-                value = fields[field_name]
-                if isinstance(value, dict) and 'name' in value:
-                    return value['name']
-                elif isinstance(value, str):
-                    return value
-        
-        # Try System.* fields (Azure DevOps style)
-        for field_name in field_names:
-            system_field = f"System.{field_name.title()}"
-            if system_field in fields:
-                value = fields[system_field]
-                if isinstance(value, dict) and 'name' in value:
-                    return value['name']
-                elif isinstance(value, str):
-                    return value
+        # Try nested fields structure (fields is a list of field objects)
+        fields_list = work_item.get('fields', [])
+        if isinstance(fields_list, list):
+            # Convert fields list to dictionary for easier lookup
+            fields_dict = {}
+            for field in fields_list:
+                if isinstance(field, dict) and 'field_key' in field and 'field_value' in field:
+                    fields_dict[field['field_key']] = field['field_value']
+            
+            for field_name in field_names:
+                if field_name in fields_dict:
+                    value = fields_dict[field_name]
+                    if isinstance(value, dict) and 'name' in value:
+                        return value['name']
+                    elif isinstance(value, str):
+                        return value
+            
+            # Try System.* fields (Azure DevOps style)
+            for field_name in field_names:
+                system_field = f"System.{field_name.title()}"
+                if system_field in fields_dict:
+                    value = fields_dict[system_field]
+                    if isinstance(value, dict) and 'name' in value:
+                        return value['name']
+                    elif isinstance(value, str):
+                        return value
         
         return default
     
@@ -205,21 +223,28 @@ class TimelineExtractor:
             if date_value:
                 return self._parse_date(date_value)
         
-        # Try nested fields structure
-        fields = work_item.get('fields', {})
-        for field_name in date_fields:
-            date_value = fields.get(field_name)
-            if date_value:
-                return self._parse_date(date_value)
-        
-        # Try System.* fields (Azure DevOps style)
-        system_date_fields = [
-            'System.CreatedDate', 'System.ChangedDate', 'System.AuthorizedDate'
-        ]
-        for field_name in system_date_fields:
-            date_value = fields.get(field_name)
-            if date_value:
-                return self._parse_date(date_value)
+        # Try nested fields structure (fields is a list of field objects)
+        fields_list = work_item.get('fields', [])
+        if isinstance(fields_list, list):
+            # Convert fields list to dictionary for easier lookup
+            fields_dict = {}
+            for field in fields_list:
+                if isinstance(field, dict) and 'field_key' in field and 'field_value' in field:
+                    fields_dict[field['field_key']] = field['field_value']
+            
+            for field_name in date_fields:
+                date_value = fields_dict.get(field_name)
+                if date_value:
+                    return self._parse_date(date_value)
+            
+            # Try System.* fields (Azure DevOps style)
+            system_date_fields = [
+                'System.CreatedDate', 'System.ChangedDate', 'System.AuthorizedDate'
+            ]
+            for field_name in system_date_fields:
+                date_value = fields_dict.get(field_name)
+                if date_value:
+                    return self._parse_date(date_value)
         
         # Default to current date
         return datetime.now().strftime('%Y-%m-%d')
@@ -273,25 +298,52 @@ class TimelineExtractor:
             return entries
             
         chart_data_list = chart_data['chart_data_list']
-        logger.info(f"Processing {len(chart_data_list)} chart data entries")
+        if not chart_data_list:
+            logger.warning("Empty chart data list")
+            return entries
+            
+        # The chart_data_list is a nested list, get the actual data entries
+        actual_data_entries = chart_data_list[0] if chart_data_list and isinstance(chart_data_list[0], list) else []
+        logger.info(f"Processing {len(actual_data_entries)} chart data entries")
         
         # Process each chart data entry
-        for i, data_entry in enumerate(chart_data_list):
+        for i, data_entry in enumerate(actual_data_entries):
             try:
-                # Each entry should be a list with 4 elements: [project_code, feature_id, user_name, work_hours]
-                if not isinstance(data_entry, list) or len(data_entry) < 4:
+                # Each entry has 'dim' (dimensions) and 'value' (values) fields
+                if not isinstance(data_entry, dict) or 'dim' not in data_entry or 'value' not in data_entry:
                     logger.warning(f"Invalid data entry format at index {i}: {data_entry}")
                     continue
-                    
-                project_code = str(data_entry[0]) if data_entry[0] else ""
-                feature_id = str(data_entry[1]) if data_entry[1] else ""
-                user_name = str(data_entry[2]) if data_entry[2] else ""
-                work_hours = float(data_entry[3]) if data_entry[3] else 0.0
                 
-                logger.debug(f"Processing entry {i}: project={project_code}, feature={feature_id}, user={user_name}, hours={work_hours}")
+                dim = data_entry['dim']
+                value = data_entry['value']
                 
-                # Skip entries with no work hours
-                if work_hours <= 0:
+                # Check if dim and value are dictionaries
+                if not isinstance(dim, dict) or not isinstance(value, dict):
+                    logger.warning(f"Invalid dim/value format at index {i}: dim={type(dim)}, value={type(value)}")
+                    continue
+                
+                # Extract dimensions
+                project_code = str(dim.get('0', '')) if dim.get('0') else ""
+                feature_id = str(dim.get('1', '')) if dim.get('1') else ""
+                user_name = str(dim.get('2', '')) if dim.get('2') else ""
+                entry_date = str(dim.get('3', '')) if dim.get('3') else ""
+                
+                # Extract work hours from value
+                work_hours_str = str(value.get('0', '0.00')) if value.get('0') else "0.00"
+                try:
+                    work_hours = float(work_hours_str)
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid work hours value: {work_hours_str}")
+                    work_hours = 0.0
+                
+                logger.debug(f"Processing entry {i}: project={project_code}, feature={feature_id}, user={user_name}, date={entry_date}, hours={work_hours}")
+                
+                # Skip entries with no work hours or invalid user name
+                if work_hours <= 0 or not user_name or user_name == '(空)':
+                    continue
+                
+                # Check if entry date matches target date (if specified)
+                if target_date and entry_date != target_date.strftime('%Y-%m-%d'):
                     continue
                     
                 # Get project information
@@ -305,7 +357,7 @@ class TimelineExtractor:
                 
                 # Create timeline entry
                 entry = TimelineEntry(
-                    date=target_date.strftime('%Y-%m-%d'),
+                    date=entry_date or (target_date.strftime('%Y-%m-%d') if target_date else entry_date),
                     project_code=project_code,
                     project_type=project_info['project_type'],
                     project_status=project_info['project_status'],
@@ -314,7 +366,6 @@ class TimelineExtractor:
                     market_region='',  # Default empty
                     category_function=feature_info['business_line'],  # Use business_line for category_function
                     entity='',  # Default empty
-                    member_name=user_name,
                     member_email=user_email,
                     work_load_hours=work_hours,
                     submission_date=feature_info['submission_date'],

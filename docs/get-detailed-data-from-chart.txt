@@ -1,0 +1,55 @@
+Get Detailed Data from Charts
+Introduction​
+This interface is used to get data details from a specific measure chart; the corresponding permission requests are classified under Developer Platform - Permissions ​
+To get more information: Permission Management​
+​
+Request Method​
+GET​
+Request Address​
+/open_api/:project_key/measure/:chart_id​
+Request Header​
+How to get and fill request header, please refer to Request Header ​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+​
+Required or not​
+Value Type​
+Description​
+​
+Path parameters​
+project_key​
+Yes​
+string​
+Space id​
+chart_id​
+Yes​
+string​
+Chart id could be obtained from the front-end Browser url​
+Return Format​
+ ​
+​
+{​
+    "data":{​
+        "name":"Charts",​
+        "chart_id":"1234556789",​
+        "chart_data_list":[​
+            {​
+                "data_set":[​
+                    {​
+                        "dim":{"0":"xxx","1":"ddd"},​
+                        "value":{"0":"P1","1":"P0"}​
+                    }​
+                ],​
+                "dim_titles":["Work item id","whether passed the smoke test or not"],​
+                "value_titles":["name (count)"]​
+            }​
+        ]​
+        ​
+    },​
+    "err": {},​
+    "err_code": 0,​
+    "err_msg": ""​
+    }​
+​
+​

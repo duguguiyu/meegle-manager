@@ -1,0 +1,220 @@
+Get the Specified Work Item List (Single Space)
+Introduction​
+This interface is used to filter work items with specific conditions requested within the same space ; the corresponding permission requests are classified under Developer Platform - Permissions​
+To get more information: Permission Management​
+​
+​
+Request Method​
+POST​
+Request Address​
+/open_api/:project_key/work_item/filter​
+Request Header​
+How to get and fill request header ​Request Header ​
+​
+​
+​
+​
+​
+​
+​
+​
+​
+​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+Required or not​
+Value Type​
+Description​
+Path parameters​
+project_key​
+Yes​
+string​
+Space id (project_key), or space domain name (simple_name)​
+Request body parameters​
+work_item_name​
+No​
+string​
+Work item name (support fuzzy search)​
+user_keys​
+No​
+list<string>​
+User information list (support search creator/follower/role person for the user's related work items)​
+work_item_type_keys​
+Yes​
+list<string>​
+Work item type, refer to Get Work Item Types in Space​
+work_item_ids​
+No​
+list<int64>​
+Work Item ID List​
+created_at​
+No​
+TimeInterval​
+​
+Creation time (support time interval query, may not pass the cut-off time, representing to this day)​
+updated_at​
+No​
+TimeInterval​
+Update time (support time interval query, may not pass the cut-off time, representing to this day)​
+sub_stages​
+No​
+list<string>​
+Requirements Work Item Status List​
+work_item_status​
+No​
+list<WorkItemStatus>​
+Work Item Status List​
+businesses​
+No​
+list<string>​
+Business Line List​
+priorities​
+No​
+list<string>​
+Priority List​
+tags​
+No​
+list<string>​
+Tag List​
+search_id​
+No​
+string​
+Search id​
+page_size​
+No​
+int64​
+Data per page, max. 200​
+page_num ​
+No​
+int64​
+Page numbering, starting from 1, default is 1​
+​
+expand​
+No ​
+Expand​
+additional parameters:​
+need_workflow: whether workflow information is needed (currently only node flow is supported)​
+need_multi_text: whether rich text details are needed​
+relation_fields_detail: need associated fields or not​
+Example: ​
+​
+"expand":{​
+    "need_workflow":true,​
+    "need_multi_text":true,​
+    "relation_fields_detail":true​
+}​
+​
+​
+Request Form​
+​
+​
+{​
+    "work_item_type_keys": [​
+        "story"​
+    ],​
+    "created_at": {// data until today will be returned if end time is not requested​
+        "start": 1633776611033​
+    },​
+     "updated_at": {​
+        "start": 1633776611033,​
+        "end": 1633776613033​
+    },​
+    "work_item_status":[​
+     {                 ​
+                        "state_key": "started"// work items that are in the started status​
+                    }​
+    ],​
+    "page_size":50​
+}​
+​
+​
+Return Value Type​
+list< WorkItemInfo>​
+Only supports returning 5000 work items, please use more filtering conditions to limit the result​
+Return Format​
+​
+​
+​
+{​
+    "data":[// Structure remains the same with the work item details got​
+        {​
+            "id":1,​
+            "name":"item1",​
+            "work_item_type_key":"story",​
+            "project_key":"60acd5610444ba031b503055",​
+            "simple_name":"test",​
+            "template_type":"control",​
+            "pattern":"Node",​
+            "sub_stage":"started",​
+            "work_item_status": {},​
+            "current_node":[​
+                {​
+                    "id":"state_1",​
+                    "name":"node1",​
+                    "owners":[​
+                        "7012514555133820947"​
+                    ]​
+                }​
+            ],​
+            "state_times": [ // node time​
+                {​
+                    "end_time": 1654156400805,​
+                    "name": "start",​
+                    "start_time": 1654156400804,​
+                    "state_key": "started"​
+                },​
+                {​
+                    "end_time": 0,​
+                    "name": "form",​
+                    "start_time": 1654156400805,​
+                    "state_key": "doing"​
+                }​
+            ],​
+            "created_by":"7009146719661228031",​
+            "updated_by":"7009146719661228031",​
+            "created_at":1633776613033,​
+            "updated_at":1633776613033,​
+            "fields":[​
+                {​
+                    "field_alias": "",​
+                    "field_key": "aborted",​
+                    "field_type_key": "aborted",​
+                    "field_value": {​
+                        "is_aborted": false,​
+                        "reason": ""​
+                    }​
+                },​
+                {​
+                    "field_alias": "",​
+                    "field_key": "role_owners",​
+                    "field_type_key": "role_owners",​
+                    "field_value": [​
+                        {​
+                            "owners": [​
+                                "7012514555184152596"​
+                            ],​
+                            "role": "uiouiouio"​
+                        },​
+                        {​
+                            "owners": null,​
+                            "role": "test"​
+                        },​
+                        {​
+                            "owners": null,​
+                            "role": "tt"​
+                        }​
+                    ]​
+                }​
+            ],​
+        }​
+    ],​
+    "err": {},​
+    "err_msg": "",​
+    "err_code": 0,​
+    "pagination": {​
+        "page_num": 1,​
+        "page_size": 10,​
+        "total": 1​
+    }​
+}​

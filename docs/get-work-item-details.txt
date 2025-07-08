@@ -1,0 +1,180 @@
+Get Work Item Details
+Introduction​
+This interface is used to obtain the detailed information of a specific work item (eg. a feautre/bug) in a specific project space;  the corresponding permission requests are classified under Developer Platform - Permissions​
+To get more information: Permission Management​
+​
+Request Method​
+POST​
+Request Address​
+/open_api/:project_key/work_item/:work_item_type_key/query​
+Request Header​
+How to get and fill request header ​Request Header ​
+​
+​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+Required or not​
+Value Type​
+Description​
+Path parameters​
+project_key​
+Yes​
+string​
+Space id (project_key), or space domain name (simple_name)​
+work_item_type_key​
+Yes​
+string​
+Work item type, refer to Get Work Item Types in Space​
+Request body parameters​
+work_item_ids​
+Yes​
+list<int64>​
+For a list of work item IDs, request up to 50 at a time​
+fields​
+No​
+list<string>​
+Define the fields to be returned, not required, return all by default​
+If fields start with -, it means that all fields in the field except the - sign are returned.​
+Otherwise, only field infields are returned (the two methods cannot be mixed).​
+For example.​
+1). ["aborted", "role_owners"] means that only the aborted and role_owners fields are returned.​
+2). ["-aborted","-role_owners"] means return all fields except for aborted and role_owners​
+expand​
+No​
+Expand​
+​
+additional parameters:​
+need_workflow: whether workflow information is needed (currently only node flow is supported)​
+need_multi_text: whether rich text details are needed​
+relation_fields_detail: need associated fields or not​
+need_user_detail：Whether the user information needs to be returned​
+Example: ​
+​
+"expand":{​
+    "need_workflow":true,​
+    "need_multi_text":true,​
+    "relation_fields_detail":true,​
+    "need_user_detail": true​
+}​
+​
+Request Form​
+​
+​
+{​
+    "work_item_ids":[12345,12323] //work item id​
+}​
+​
+Return Value Type​
+list< Work Item Info>​
+Return Format​
+​
+​
+{​
+    "data":[​
+        {​
+            "id":301228xxxx,//wprk item id​
+            "name":"item1",//work item name​
+            "work_item_type_key":"story",//work item type​
+            "project_key":"60acd5610444ba031b503055",// space id​
+            "simple_name":"test",// space domain​
+            "template_id":12345// template id used​
+            "template_type":"control",// template type​
+            "pattern":"Node",// workflow mode; Node，State​
+            "sub_stage":"started",//feature status, applies to old work items, no longer using​
+            "work_item_status": {},// work item status (unless feature has other status)​
+            "current_nodes":[// ongoing node(only node-driven workflows will return a result)​
+                {​
+                    "id":"state_1",//node id​
+                    "name":"node1",//node name​
+                    "owners":[// userkeys of node owners​
+                        "7012514555133820947"​
+                    ]​
+                }​
+            ],​
+            "state_times": [ // node time​
+                {​
+                    "end_time": 1654156400805,​
+                    "name": "start",​
+                    "start_time": 1654156400804,​
+                    "state_key": "started"​
+                },​
+                {​
+                    "end_time": 0,​
+                    "name": "form",​
+                    "start_time": 1654156400805,​
+                    "state_key": "doing"​
+                }​
+            ],​
+            "created_by":"7009146719661228031",// creator userKey​
+            "updated_by":"7009146719661228031",// userKey of the personal last updates​
+            "created_at":1633776613033,//creation time millisecond timestamp​
+            "updated_at":1633776613033,// update time millisecond timestamp​
+             "relation_fields_detail": [//detailed information on associated work item fields，only returns a value when setting an expand parameter ​
+                {​
+                    "field_key": "resolve_version",​
+                    "detail": [​
+                        {​
+                            "story_id": 3000985687,//associated work item id​
+                            "work_item_type_key": "version",// associated work item type​
+                            "project_key": "658b9f05809f644bebd6613a"// associated project key​
+                        }​
+                    ]​
+                }​
+              ]，  ​
+              "workflow_infos": {//node detail，only returns a value when setting an expand parameter ​
+                "workflow_nodes": ​
+                 "connections": ​
+                 },​
+                  "multi_texts": [//rich text detail，only returns a value when setting an expand parameter ​
+                {​
+                    "field_key": "field_5c572c",​
+                    "field_value": {​
+                        "is_empty": false,​
+                        "notify_user_list": [],​
+                        "notify_user_type": "",​
+                        "doc_html": "",​
+                        "doc": "",​
+                        "doc_text": "hahah\n"​
+                    }​
+                }​
+            ]，​
+            "fields":[// work item fields​
+                {​
+                    "field_alias": "",​
+                    "field_key": "aborted",​
+                    "field_type_key": "aborted",​
+                    "field_value": {​
+                        "is_aborted": false,​
+                        "reason": ""​
+                    }​
+                },​
+                {​
+                    "field_alias": "",​
+                    "field_key": "role_owners",​
+                    "field_type_key": "role_owners",​
+                    "field_value": [​
+                        {​
+                            "owners": [​
+                                "7012514555184152596"​
+                            ],​
+                            "role": "uiouiouio"​
+                        },​
+                        {​
+                            "owners": null,​
+                            "role": "test"​
+                        },​
+                        {​
+                            "owners": null,​
+                            "role": "tt"​
+                        }​
+                    ]​
+                }​
+            ],​
+        }​
+    ],​
+    "err": {},​
+    "err_msg": "",​
+    "err_code": 0​
+}​
+​
