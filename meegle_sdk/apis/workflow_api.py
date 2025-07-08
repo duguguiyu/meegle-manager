@@ -163,40 +163,42 @@ class WorkflowAPI:
                     }
                     schedules.append(schedule_info)
         else:
-            # Use node schedule if no sub tasks
-            node_schedule = node.get('node_schedule')
-            if node_schedule:
-                logger.debug(f"Node {node.get('id')} has node-level schedule")
-                schedule_info = {
-                    'type': 'node',
-                    'task_id': None,
-                    'task_name': None,
-                    'node_id': node.get('id'),
-                    'node_name': node.get('name'),
-                    'owners': node_schedule.get('owners', []),
-                    'estimate_start_date': node_schedule.get('estimate_start_date'),
-                    'estimate_end_date': node_schedule.get('estimate_end_date'),
-                    'points': node_schedule.get('points', 0),
-                    'actual_work_time': node_schedule.get('actual_work_time', 0)
-                }
-                schedules.append(schedule_info)
-            
-            # Also check individual schedules (for dynamic calculation)
+            # Priority 1: Check schedules array (for dynamic calculation with per-user breakdown)
             individual_schedules = node.get('schedules', [])
-            for schedule in individual_schedules:
-                schedule_info = {
-                    'type': 'node_individual',
-                    'task_id': None,
-                    'task_name': None,
-                    'node_id': node.get('id'),
-                    'node_name': node.get('name'),
-                    'owners': schedule.get('owners', []),
-                    'estimate_start_date': schedule.get('estimate_start_date'),
-                    'estimate_end_date': schedule.get('estimate_end_date'),
-                    'points': schedule.get('points', 0),
-                    'actual_work_time': schedule.get('actual_work_time', 0)
-                }
-                schedules.append(schedule_info)
+            if individual_schedules:
+                logger.debug(f"Node {node.get('id')} has {len(individual_schedules)} individual schedules")
+                for schedule in individual_schedules:
+                    schedule_info = {
+                        'type': 'node_individual',
+                        'task_id': None,
+                        'task_name': None,
+                        'node_id': node.get('id'),
+                        'node_name': node.get('name'),
+                        'owners': schedule.get('owners', []),
+                        'estimate_start_date': schedule.get('estimate_start_date'),
+                        'estimate_end_date': schedule.get('estimate_end_date'),
+                        'points': schedule.get('points', 0),
+                        'actual_work_time': schedule.get('actual_work_time', 0)
+                    }
+                    schedules.append(schedule_info)
+            else:
+                # Priority 2: Fallback to node_schedule if no individual schedules
+                node_schedule = node.get('node_schedule')
+                if node_schedule:
+                    logger.debug(f"Node {node.get('id')} has node-level schedule")
+                    schedule_info = {
+                        'type': 'node',
+                        'task_id': None,
+                        'task_name': None,
+                        'node_id': node.get('id'),
+                        'node_name': node.get('name'),
+                        'owners': node_schedule.get('owners', []),
+                        'estimate_start_date': node_schedule.get('estimate_start_date'),
+                        'estimate_end_date': node_schedule.get('estimate_end_date'),
+                        'points': node_schedule.get('points', 0),
+                        'actual_work_time': node_schedule.get('actual_work_time', 0)
+                    }
+                    schedules.append(schedule_info)
         
         logger.debug(f"Extracted {len(schedules)} schedules from node {node.get('id')}")
         return schedules 
