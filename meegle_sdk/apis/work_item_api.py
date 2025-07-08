@@ -422,3 +422,43 @@ class WorkItemAPI:
         
         logger.info(f"Retrieved {len(all_work_items)} work items by IDs")
         return all_work_items 
+
+    def get_work_item_types(self) -> List[Dict[str, Any]]:
+        """
+        Get all work item types in the space
+        
+        Returns:
+            List of work item type dictionaries with keys:
+            - api_name: API name for the type
+            - is_disable: Whether disabled (1: disabled, 2: not disabled)
+            - type_key: Work item type key
+            - name: Work item type display name
+        """
+        try:
+            logger.info("Fetching all work item types")
+            endpoint = f"{self.client.project_key}/work_item/all-types"
+            
+            response = self.client.get(endpoint)
+            
+            # Handle response format - API returns list directly, not wrapped in 'data'
+            work_item_types = []
+            if isinstance(response, list):
+                work_item_types = response
+            elif isinstance(response, dict) and 'data' in response:
+                work_item_types = response['data']
+            
+            if work_item_types:
+                logger.info(f"Successfully retrieved {len(work_item_types)} work item types")
+                
+                # Filter out disabled types
+                enabled_types = [wt for wt in work_item_types if wt.get('is_disable') == 2]
+                logger.info(f"Found {len(enabled_types)} enabled work item types")
+                
+                return enabled_types
+            else:
+                logger.warning("No work item types data in response")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Failed to get work item types: {e}")
+            return [] 

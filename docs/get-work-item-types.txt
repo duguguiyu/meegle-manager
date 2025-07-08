@@ -1,0 +1,47 @@
+Get Work Item Types in Space
+Introduction​
+This interface is used to obtain the identifiers of all work item types in a space (to obtain the work_item_type_key parameter used for subsequent requests); the corresponding permission requests are classified under Developer Platform - Permissions ​
+To get more information: Permission Management​
+​
+Request Method​
+GET​
+​
+Request Address​
+/open_api/:project_key/work_item/all-types​
+Request header​
+How to get and fill request header, please refer to ​Request Header ​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+Required or not​
+Value Type​
+Description​
+Path parameters​
+project_key​
+Yes​
+string​
+Space id (project_key), or space domain name (simple_name)  ​Domain ​
+Return Value Type​
+list< WorkItemKeyType>​
+Return Format​
+​
+​
+{​
+    "data":[​
+        {    ​
+            "api_name": "story",​
+            "is_disable": 2, // Disabled or not, 1:disabled, 2:not disabled​
+            "type_key":"story",//work item type​
+            "name":"feature"//work item name​
+        }, ​
+        {​
+            "api_name": "issue",​
+            "is_disable": 2,​
+            "type_key":"issue",​
+            "name":"issue"​
+        }​
+    ],​
+    "err": {},​
+    "err_msg": "",​
+    "err_code": 0​
+}​

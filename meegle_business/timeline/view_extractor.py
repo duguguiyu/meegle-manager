@@ -287,7 +287,7 @@ class ViewTimelineExtractor(TimelineExtractor):
         Returns:
             Dictionary with project information
         """
-        # Look for related project field (field_c0a56e as mentioned by user)
+        # Look for related project field (field_c0a56e as confirmed by debugging)
         project_id = self._extract_field_value(work_item, ['field_c0a56e', 'related_project', 'project_id'])
         
         if project_id and project_id != 'N/A':
@@ -304,6 +304,8 @@ class ViewTimelineExtractor(TimelineExtractor):
                 # Mark as failed to avoid future retries
                 self._failed_project_ids.add(project_id)
                 logger.debug(f"Added project ID {project_id} to failed list")
+                # Use story info as fallback
+                return self._get_fallback_project_info()
         
         # Fallback to default project info
         return self._get_fallback_project_info()
@@ -335,7 +337,7 @@ class ViewTimelineExtractor(TimelineExtractor):
             else:
                 # Get project details from API using correct project type ID
                 logger.debug(f"Fetching project {project_id} from API")
-                project = self.sdk.work_items.get_work_item_by_id(project_id, "642ebe04168eea39eeb0d34a")
+                project = self.sdk.work_items.get_work_item_by_id(project_id, "642ec373f4af608bb3cb1c90")
                 if project:
                     self._work_item_cache[project_id] = project
                     logger.debug(f"Cached project {project_id}")
