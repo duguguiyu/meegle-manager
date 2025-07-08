@@ -1,0 +1,64 @@
+Get the List of Work Items in Views
+Introduction​
+This interface is used to obtain the list of work items under a specific view; the corresponding permission requests are classified under Developer Platform - Permissions ​
+To get more information: Permission Management​
+​
+Request Method​
+GET​
+Request Address​
+/open_api/:project_key/fix_view/:view_id?page_size=:page_size&page_num=:page_num​
+Request header​
+How to get and fill request header, please refer to ​Request Header ​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+Required or not​
+Value Type​
+Description​
+Path parameters​
+project_key​
+Yes​
+string​
+Space id (project_key), or space domain name (simple_name)​
+view_id​
+Yes​
+string​
+View ID​
+Query Parameters​
+page_size​
+No​
+int64​
+Data per page, max. 200​
+page_num​
+No​
+int64​
+Page numbering, starting from 1, default is 1​
+Return Value Type​
+FixView​
+FixView​
+Return Format​
+​
+​
+{​
+    "data": {​
+        "created_at": 1639983457330,//creation time​
+        "created_by": "701251455518xxxxx",//creator​
+        "editable": false,​
+        "modified_by": "701251455518xxxxx",//person last updated​
+        "name": "view1",//view name​
+        "view_id": "Pb1F12TzR",//view id​
+        "work_item_id_list": [​
+            1746046,​
+            1746045,​
+            1744768​
+        ]​
+    },​
+    "pagination": {​
+        "page_num": 1,​
+        "page_size": 200,​
+        "total": 3​
+    },​
+    "err": {},​
+    "err_msg": "",​
+    "err_code": 0​
+}​

@@ -70,6 +70,11 @@ class MeegleSDK:
         """Access to User APIs"""
         return self._client.users
     
+    @property
+    def workflows(self):
+        """Access to Workflow APIs"""
+        return self._client.workflows
+    
     def get_client(self):
         """Get the underlying client instance"""
         return self._client 

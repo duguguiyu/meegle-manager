@@ -194,6 +194,12 @@ class BaseAPIClient:
                 
                 # Handle other HTTP errors
                 else:
+                    # Don't retry on client errors (4xx) as they indicate problems with the request itself
+                    if 400 <= response.status_code < 500:
+                        logger.error(f"Client error {response.status_code}: {response.text}")
+                        raise APIError(f"HTTP {response.status_code}: {response.text}", response.status_code)
+                    
+                    # Retry on server errors (5xx) and other errors
                     if attempt == max_attempts - 1:
                         logger.error(f"HTTP error {response.status_code}: {response.text}")
                         raise APIError(f"HTTP {response.status_code}: {response.text}", response.status_code)
@@ -204,8 +210,8 @@ class BaseAPIClient:
                 logger.warning(f"Network error during {description}: {e}")
                 if attempt == max_attempts - 1:
                     raise APIError(f"Network error: {e}")
-            except (AuthenticationError, RateLimitError):
-                # Re-raise these specific exceptions
+            except (AuthenticationError, RateLimitError, APIError):
+                # Re-raise these specific exceptions without retry
                 raise
             except Exception as e:
                 logger.warning(f"Unexpected error during {description}: {e}")

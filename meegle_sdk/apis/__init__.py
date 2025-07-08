@@ -1,8 +1,9 @@
 """APIs module for Meegle SDK"""
 
-from .chart_api import ChartAPI
-from .work_item_api import WorkItemAPI
-from .team_api import TeamAPI
 from .user_api import UserAPI
+from .work_item_api import WorkItemAPI
+from .chart_api import ChartAPI
+from .team_api import TeamAPI
+from .workflow_api import WorkflowAPI
 
-__all__ = ["ChartAPI", "WorkItemAPI", "TeamAPI", "UserAPI"] 
+__all__ = ["ChartAPI", "WorkItemAPI", "TeamAPI", "UserAPI", "WorkflowAPI"] 

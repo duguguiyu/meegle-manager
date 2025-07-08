@@ -225,3 +225,35 @@ class CSVExporter:
         })
         
         return summary 
+
+    def export_view_timeline_to_csv(self, view_id: str, extractor, 
+                                   filename: str = None) -> Path:
+        """
+        Export view-based timeline data to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}"
+        
+        logger.info(f"Exporting view timeline for view {view_id}")
+        
+        try:
+            # Extract timeline data from view
+            timeline_data = extractor.extract_timeline_from_view(view_id, 'story')
+            
+            # Export to CSV
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported view timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export view timeline for {view_id}: {e}")
+            raise 

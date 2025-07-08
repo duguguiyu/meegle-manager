@@ -1,0 +1,296 @@
+Get Workflow Details
+Introduction​
+This interface is used to obtain workflow information of a work item under specified space and work item type, including node status, node owner, estimated PD, node form, subtask, etc; the corresponding permission requests are classified under Developer Platform - Permissions ​
+To get more information: Permission Management​
+​
+​
+​​
+
+​
+​
+​
+Request Method​
+POST​
+Request Address​
+/open_api/:project_key/work_item/:work_item_type_key/:work_item_id/workflow/query​
+Request Header​
+How to get and fill request header, please refer to ​Request Header ​
+​
+​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+Required or not​
+Value Type​
+Description​
+Path parameters​
+​
+work_item_id​
+Yes​
+int64​
+Work Item ID​
+project_key​
+Yes​
+string​
+Space id (project_key), or space domain name (simple_name)​
+work_item_type_key​
+Yes​
+string​
+Work item type, refer to Get Work Item Types in Space​
+Request body parameters​
+flow_type​
+No​
+int64​
+Workflow type:​
+0: Node flow, node flow work item: Features, etc.​
+1 : State flow, state flow work items: Issues, Versions, etc.​
+Optional, default is 0 (node flow)​
+fields​
+No​
+list<FieldValuePair>​
+Define the fields to be returned, not required(optional), return all by default​
+If fields start with -, it means that all fields in the field except the - sign are returned.​
+Otherwise, only field infields are returned (the two methods cannot be mixed).​
+For example.​
+1). ["name", "created_at"] means that only the name and created_at fields are returned.​
+2). ["-name","-created_at"] means return all fields except name and created_at​
+Request Form​
+​
+​
+{​
+    "flow_type":0//work item type，0:node-driven，1:status-driven​
+}​
+​
+​
+Return Value Type​
+NodesConnections​
+NodesConnections​
+Return Format​
+​
+​
+{//node-driven workflow​
+    "data":{​
+        "workflow_nodes":[// detail information of every node in the workflow​
+            {​
+                "id":"started",//node id​
+                "state_key": "started",//node key，same as node id​
+                "name":"flowNode1",//node name​
+                "status":2,//node status,1：not started，2:ongoing，3:completed​
+                "actual_begin_time": "2024-05-29T14:38:13.019+08:00",//actual start time of node​
+                "actual_finish_time": "2024-05-29T14:38:13.021+08:00",//actual end time of node​
+                "fields":[//fields in node form ​
+                    {​
+                        "field_alias": "sentry_link",// field identifier​
+                        "field_key": "field_658c22",//field key​
+                        "field_type_key": "text",//field type​
+                        "field_value": "23333"//field value​
+                    }​
+                ],​
+                "owners":[//user keys of node owners​
+                    "7009146719661228031",​
+                    "7009146719661228032"​
+                ],​
+                "role_assignee": [//role owners associated with the node​
+                    {​
+                        "owners": [],​
+                        "role": "PM"​
+                    }​
+                ],​
+                "node_schedule":{//node scheduling​
+                    "owners":[// user_key​
+                        "7009146719661228031",​
+                        "7009146719661228032"​
+                    ],​
+                    "estimate_start_date":1633776613033,// estimated start time​
+                    "estimate_end_date":1633776813033,// estimated end time​
+                    "points":10.4 // PD​
+                },​
+                "schedules":[//scheduling of different users（will only return a value when schedule is set to dynamic calculation)​
+                    {​
+                        "owners":[​
+                            "7009146719661228031"​
+                        ],​
+                        "estimate_start_date":1633776613033,​
+                        "estimate_end_date":1633776813033,​
+                        "points":10.4​
+                    },​
+                    {​
+                        "owners":[​
+                            "7009146719661228032"​
+                        ],​
+                        "estimate_start_date":1633776613034,​
+                        "estimate_end_date":1633776813035,​
+                        "points":10.4​
+                    }​
+                ],​
+                "sub_tasks":[//node tasks​
+                    {​
+                        "id":"1",// task id​
+                        "name":"task111",//task name​
+                        "schedules":[//task schedule​
+                            {​
+                                "owners":[​
+                                    "7009146719661228031",​
+                                    "7009146719661228032"​
+                                ],​
+                                "estimate_start_date":1633776613033,​
+                                "estimate_end_date":1633776813033,​
+                                "points":10.4​
+                            }​
+                        ],​
+                        "order":1.2,//task order​
+                        "details":"detailabc",//task detail​
+                        "passed":false,//passed or not​
+                        "owners":[​
+                            "7009146719661228031",​
+                            "7009146719661228032"​
+                        ]​
+                    }​
+                ]​
+            }​
+        ],​
+        "connections":[//node upstream/downstream information​
+            {​
+                "source_state_key":"70091467196612280",//start node id​
+                "target_state_key":"70091467196612281"//target node id​
+            }​
+        ]​
+    },​
+    "err": {},​
+    "err_msg": "",​
+    "err_code": 0​
+}​
+​
+​
+{//status-driven workflow​
+    "data": {​
+        "connections": [//status upstream/downstream information​
+            {​
+                "source_state_key": "OPEN",//source status key​
+                "target_state_key": "IN PROGRESS",//target status key​
+                "transition_id": 145962//status id​
+            },​
+            {​
+                "source_state_key": "OPEN",​
+                "target_state_key": "RESOLVED",​
+                "transition_id": 145963​
+            },​
+            {​
+                "source_state_key": "IN PROGRESS",​
+                "target_state_key": "RESOLVED",​
+                "transition_id": 145964​
+            },​
+            {​
+                "source_state_key": "RESOLVED",​
+                "target_state_key": "REOPENED",​
+                "transition_id": 145965​
+            },​
+            {​
+                "source_state_key": "RESOLVED",​
+                "target_state_key": "CLOSED",​
+                "transition_id": 145966​
+            },​
+            {​
+                "source_state_key": "REOPENED",​
+                "target_state_key": "IN PROGRESS",​
+                "transition_id": 145967​
+            },​
+            {​
+                "source_state_key": "REOPENED",​
+                "target_state_key": "RESOLVED",​
+                "transition_id": 145968​
+            },​
+            {​
+                "source_state_key": "CLOSED",​
+                "target_state_key": "REOPENED",​
+                "transition_id": 145969​
+            }​
+        ],​
+        "state_flow_nodes": [​
+            {​
+                "actual_begin_time": "",//actual start time of the status​
+                "actual_finish_time": "",//actual end time of the status​
+                "fields": [],//fields in status form ​
+                "id": "IN PROGRESS",//status key​
+                "name": "IN PROGRESS",//status name​
+                "role_owners": [//status owner​
+                    {​
+                        "owners": [],​
+                        "role": "operator"​
+                    }​
+                ],​
+                "status": 1 //​
+            },​
+            {​
+                "actual_begin_time": "",​
+                "actual_finish_time": "",​
+                "fields": [],​
+                "id": "RESOLVED",​
+                "name": "RESOLVED",​
+                "role_owners": [​
+                    {​
+                        "owners": [],​
+                        "role": "reporter"​
+                    }​
+                ],​
+                "status": 2​
+            },​
+            {​
+                "actual_begin_time": "",​
+                "actual_finish_time": "",​
+                "fields": [],​
+                "id": "REOPENED",​
+                "name": "REOPENED",​
+                "role_owners": [​
+                    {​
+                        "owners": [],​
+                        "role": "operator"​
+                    }​
+                ],​
+                "status": 3​
+            },​
+            {​
+                "actual_begin_time": "",​
+                "actual_finish_time": "",​
+                "fields": [],​
+                "id": "CLOSED",​
+                "name": "CLOSED",​
+                "role_owners": [​
+                    {​
+                        "owners": [],​
+                        "role": "reporter"​
+                    }​
+                ],​
+                "status": 1​
+            },​
+            {​
+                "actual_begin_time": "2021-12-14T21:43:52.012Z",​
+                "actual_finish_time": "",​
+                "fields": [​
+                    {​
+                        "field_alias": "description",​
+                        "field_key": "description",​
+                        "field_type_key": "multi_text",​
+                        "field_value": "\"test\\n2333\"",​
+                        "target_state": {​
+                            "state_key": "IN PROGRESS",​
+                            "transition_id": 145962​
+                        }​
+                    }​
+                ],​
+                "id": "OPEN",​
+                "name": "OPEN",​
+                "role_owners": [​
+                    {​
+                        "owners": [],​
+                        "role": "operator"​
+                    }​
+                ],​
+                "status": 2​
+            }​
+        ]​
+    },​
+    "err": {},​
+    "err_code": 0,​
+    "err_msg": ""​
+}

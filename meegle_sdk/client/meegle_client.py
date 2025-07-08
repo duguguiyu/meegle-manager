@@ -11,6 +11,7 @@ from ..apis.chart_api import ChartAPI
 from ..apis.work_item_api import WorkItemAPI
 from ..apis.team_api import TeamAPI
 from ..apis.user_api import UserAPI
+from ..apis.workflow_api import WorkflowAPI
 from config.settings import get_meegle_config
 
 logger = logging.getLogger(__name__)
@@ -79,21 +80,13 @@ class MeegleClient:
         )
         
         # Initialize API instances
-        self._init_apis()
-        
-        logger.info("Meegle client initialized successfully")
-    
-    def _init_apis(self):
-        """Initialize all API instances"""
-        # Initialize team API first (needed by user API)
         self._team_api = TeamAPI(self._base_client)
-        
-        # Initialize other APIs
         self._chart_api = ChartAPI(self._base_client)
         self._work_item_api = WorkItemAPI(self._base_client)
         self._user_api = UserAPI(self._base_client, self._team_api)
+        self._workflow_api = WorkflowAPI(self._base_client)
         
-        logger.debug("All API instances initialized")
+        logger.info("Meegle client initialized successfully")
     
     @property
     def charts(self) -> ChartAPI:
@@ -114,6 +107,11 @@ class MeegleClient:
     def users(self) -> UserAPI:
         """Access to User API"""
         return self._user_api
+    
+    @property
+    def workflows(self) -> WorkflowAPI:
+        """Access to Workflow API"""
+        return self._workflow_api
     
     @property
     def token_manager(self) -> TokenManager:

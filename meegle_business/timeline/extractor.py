@@ -99,21 +99,35 @@ class TimelineExtractor:
         projects = self.get_projects_cache()
         
         for project in projects:
-            # Check various possible field names for project code
-            project_fields = project.get('fields', []) if 'fields' in project else []
+            # Check the 'name' field for project code (as specified by user)
+            project_name_field = project.get('name')
+            if project_name_field == project_code:
+                # Extract project information using correct field mappings
+                project_info = {
+                    'project_type': self._extract_field_value(project, ['template'], 'Product'),
+                    'project_status': self._extract_field_value(project, ['work_item_status'], 'Open'),
+                    'project_name': self._extract_field_value(project, ['field_28829a'], project_code)
+                }
+                logger.debug(f"Found project info for {project_code}: {project_info}")
+                return project_info
             
-            # Check direct fields first
-            code_fields = ['code', 'project_code', 'projectCode', 'name', 'title', 'key']
-            for field in code_fields:
-                field_value = project.get(field)
-                if field_value == project_code:
-                    # Extract project information
+            # Also check in fields structure if direct field lookup fails
+            project_fields = project.get('fields', []) if 'fields' in project else []
+            if isinstance(project_fields, list):
+                # Convert fields list to dictionary for easier lookup
+                fields_dict = {}
+                for field in project_fields:
+                    if isinstance(field, dict) and 'field_key' in field and 'field_value' in field:
+                        fields_dict[field['field_key']] = field['field_value']
+                
+                # Check if the 'name' field in fields matches project_code
+                if fields_dict.get('name') == project_code:
                     project_info = {
-                        'project_type': self._extract_field_value(project, ['type', 'item_type', 'workItemType'], 'Product'),
-                        'project_status': self._extract_field_value(project, ['status', 'state'], 'Open'),
-                        'project_name': self._extract_field_value(project, ['name', 'title'], project_code)
+                        'project_type': fields_dict.get('template', 'Product'),
+                        'project_status': fields_dict.get('work_item_status', 'Open'),
+                        'project_name': fields_dict.get('field_28829a', project_code)
                     }
-                    logger.debug(f"Found project info for {project_code}: {project_info}")
+                    logger.debug(f"Found project info in fields for {project_code}: {project_info}")
                     return project_info
         
         logger.warning(f"Project not found for code: {project_code}")
@@ -175,10 +189,24 @@ class TimelineExtractor:
         for field_name in field_names:
             if field_name in work_item:
                 value = work_item[field_name]
-                if isinstance(value, dict) and 'name' in value:
-                    return value['name']
+                # Handle different value types
+                if isinstance(value, dict):
+                    # For template field, we might want to use a default value
+                    if field_name == 'template':
+                        return 'Product'  # Default template type
+                    # For work_item_status, extract the state_key
+                    elif field_name == 'work_item_status' and 'state_key' in value:
+                        return value['state_key']
+                    # For other dict values, try to get 'name' field
+                    elif 'name' in value:
+                        return value['name']
+                    # For dict values, try to get 'value' field
+                    elif 'value' in value:
+                        return str(value['value'])
                 elif isinstance(value, str):
                     return value
+                elif value is not None:
+                    return str(value)
         
         # Try nested fields structure (fields is a list of field objects)
         fields_list = work_item.get('fields', [])
@@ -192,10 +220,24 @@ class TimelineExtractor:
             for field_name in field_names:
                 if field_name in fields_dict:
                     value = fields_dict[field_name]
-                    if isinstance(value, dict) and 'name' in value:
-                        return value['name']
+                    # Handle different value types
+                    if isinstance(value, dict):
+                        # For template field, we might want to use a default value
+                        if field_name == 'template':
+                            return 'Product'  # Default template type
+                        # For work_item_status, extract the state_key
+                        elif field_name == 'work_item_status' and 'state_key' in value:
+                            return value['state_key']
+                        # For other dict values, try to get 'name' field
+                        elif 'name' in value:
+                            return value['name']
+                        # For dict values, try to get 'value' field
+                        elif 'value' in value:
+                            return str(value['value'])
                     elif isinstance(value, str):
                         return value
+                    elif value is not None:
+                        return str(value)
             
             # Try System.* fields (Azure DevOps style)
             for field_name in field_names:
