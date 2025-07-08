@@ -1,12 +1,11 @@
 """
-Work Item API for Meegle SDK
+Work Item API for Meegle
 """
 
 import logging
 from typing import Dict, Any, List, Optional
 
-from ..client.base_client import BaseAPIClient
-from ..models.base_models import WorkItem, APIError
+from meegle_sdk.client.base_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +15,14 @@ class WorkItemAPI:
     Work Item API client for managing Meegle work items
     
     Provides methods to:
-    - Get work items
-    - Query work item details
-    - Search work items
-    - List work items with filters
+    - Get work items by type (projects, stories/features)
+    - Query work items with filtering
+    - Retrieve work item details
+    
+    Note:
+        Work item type IDs:
+        - Projects: 642ec373f4af608bb3cb1c90
+        - Stories/Features: story
     """
     
     def __init__(self, client: BaseAPIClient):
@@ -30,244 +33,253 @@ class WorkItemAPI:
             client: Base API client instance
         """
         self.client = client
-    
-    def get_work_items(self, work_item_type_id: Optional[str] = None, 
+
+    def get_work_items(self, work_item_type_keys: List[str], 
                       page_size: int = 100, page_num: int = 1) -> List[Dict[str, Any]]:
         """
-        Get work items with pagination
+        Get work items with pagination using the correct Meegle API endpoint
         
         Args:
-            work_item_type_id: Work item type ID (optional, for filtering by type)
-            page_size: Number of items per page
-            page_num: Page number to retrieve
+            work_item_type_keys: List of work item type keys (required)
+                - ["642ec373f4af608bb3cb1c90"] for projects
+                - ["story"] for features/stories
+            page_size: Number of items per page (max 200)
+            page_num: Page number starting from 1 (default is 1)
             
         Returns:
             List of work items
             
         Raises:
             APIError: If work item retrieval fails
+            ValueError: If work_item_type_keys is empty
         """
-        if work_item_type_id:
-            # Work item API with specific type
-            endpoint = f"{self.client.project_key}/work_item_types/{work_item_type_id}/work_items"
-            logger.info(f"Fetching work items for type: {work_item_type_id}")
-        else:
-            # General work items endpoint
-            endpoint = f"{self.client.project_key}/work_items"
-            logger.info("Fetching all work items")
-        
-        logger.info(f"Using endpoint: {endpoint}")
-        
+        if not work_item_type_keys:
+            raise ValueError("work_item_type_keys cannot be empty")
+            
+        # Validate pagination parameters
+        if page_size > 200:
+            raise ValueError("page_size cannot exceed 200")
+        if page_num < 1:
+            raise ValueError("page_num must be >= 1")
+            
         try:
-            # Try the work item endpoint
-            params = {}
-            if page_size != 100:
-                params["page_size"] = page_size
-            if page_num != 1:
-                params["page_num"] = page_num
-                
-            data = self.client.get(
+            # Use the correct Meegle API endpoint
+            endpoint = f"{self.client.project_key}/work_item/filter"
+            
+            # Prepare parameters
+            params = {
+                "page_size": page_size,
+                "page_num": page_num,
+                "work_item_type_keys": work_item_type_keys
+            }
+            
+            logger.info(f"Fetching work items from endpoint: {endpoint}")
+            logger.info(f"Parameters: {params}")
+            
+            data = self.client.post(
                 endpoint=endpoint,
-                params=params if params else None,
-                description=f"fetch work items (page {page_num})",
-                base_delay=1.5
+                json_data=params,
+                description=f"fetch work items with types {work_item_type_keys or 'all'}",
             )
             
             # Handle different response formats
-            items = data if isinstance(data, list) else data.get('items', data.get('work_items', []))
+            if isinstance(data, dict):
+                if 'items' in data:
+                    items = data['items']
+                elif 'data' in data:
+                    items = data['data']
+                elif 'results' in data:
+                    items = data['results']
+                elif 'work_items' in data:
+                    items = data['work_items']
+                else:
+                    # Assume the response itself is the items array
+                    items = data if isinstance(data, list) else [data]
+            elif isinstance(data, list):
+                items = data
+            else:
+                items = []
             
-            logger.info(f"Retrieved {len(items)} work items")
-            
+            logger.info(f"Successfully retrieved {len(items)} work items")
             return items
             
-        except APIError as e:
-            logger.warning(f"Primary endpoint failed, trying alternatives: {e}")
+        except Exception as e:
+            logger.error(f"Failed to get work items: {e}")
+            return []
+
+    def get_work_item_by_id(self, work_item_id: str, work_item_type_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific work item by ID using the query endpoint
+        
+        Args:
+            work_item_id: Work item ID to retrieve
+            work_item_type_key: Work item type key (e.g., "642ec373f4af608bb3cb1c90" for projects)
             
-            # Try alternative endpoint structures
-            alternative_endpoints = [
-                f"{self.client.project_key}/work_items/all",
-                f"{self.client.project_key}/items",
-                f"{self.client.project_key}/items/all"
-            ]
+        Returns:
+            Work item data dictionary or None if not found
+        """
+        try:
+            # Use the correct query endpoint for getting work item details
+            endpoint = f"{self.client.project_key}/work_item/{work_item_type_key}/query"
             
-            for alt_endpoint in alternative_endpoints:
-                try:
-                    logger.info(f"Trying alternative endpoint: {alt_endpoint}")
-                    
-                    params = {}
-                    if work_item_type_id:
-                        params["work_item_type_id"] = work_item_type_id
-                    if page_size != 100:
-                        params["page_size"] = page_size
-                    if page_num != 1:
-                        params["page_num"] = page_num
-                    
-                    data = self.client.get(
-                        endpoint=alt_endpoint,
-                        params=params if params else None,
-                        description=f"fetch work items from {alt_endpoint}",
-                        base_delay=1.5
-                    )
-                    
-                    items = data if isinstance(data, list) else data.get('items', data.get('work_items', []))
-                    logger.info(f"Retrieved {len(items)} work items from alternative endpoint")
-                    return items
-                    
-                except APIError as alt_e:
-                    logger.warning(f"Alternative endpoint {alt_endpoint} failed: {alt_e}")
-                    continue
+            # Use POST method with work item IDs in the request body
+            json_data = {
+                "work_item_ids": [work_item_id]
+            }
             
-            # If all endpoints fail, raise the original error
-            logger.error(f"All work item endpoints failed. Original error: {e}")
-            raise
+            data = self.client.post(
+                endpoint=endpoint,
+                json_data=json_data,
+                description=f"fetch work item {work_item_id} of type {work_item_type_key}",
+            )
+            
+            # Handle response format
+            if isinstance(data, dict):
+                if 'items' in data and data['items']:
+                    return data['items'][0]
+                elif 'data' in data and data['data']:
+                    return data['data'][0]
+                elif 'results' in data and data['results']:
+                    return data['results'][0]
+                elif 'work_items' in data and data['work_items']:
+                    return data['work_items'][0]
+            elif isinstance(data, list) and data:
+                return data[0]
+            
+            logger.warning(f"Work item {work_item_id} not found")
+            return None
             
         except Exception as e:
-            logger.error(f"Unexpected error retrieving work items: {e}")
-            raise APIError(f"Failed to retrieve work items: {e}")
-    
-    def get_all_work_items(self, work_item_type_id: Optional[str] = None,
+            logger.error(f"Failed to get work item {work_item_id}: {e}")
+            return None
+
+    def get_all_work_items(self, work_item_type_keys: List[str],
                           page_size: int = 100) -> List[Dict[str, Any]]:
         """
         Get all work items across all pages
         
         Args:
-            work_item_type_id: Work item type ID (optional, for filtering by type)
-            page_size: Number of items per page
+            work_item_type_keys: List of work item type keys (required)
+                - ["642ec373f4af608bb3cb1c90"] for projects
+                - ["story"] for features/stories
+            page_size: Number of items per page (max 200)
             
         Returns:
-            Complete list of work items
+            Complete list of work items (empty list if no items or API fails)
         """
         all_items = []
         page_num = 1
         
-        logger.info("Fetching all work items across pages")
+        logger.info(f"Fetching all work items for types: {work_item_type_keys or 'all'}")
         
-        while True:
-            try:
-                items = self.get_work_items(
-                    work_item_type_id=work_item_type_id,
-                    page_size=page_size,
-                    page_num=page_num
-                )
-                
-                if not items:
+        try:
+            while True:
+                try:
+                    items = self.get_work_items(
+                        work_item_type_keys=work_item_type_keys,
+                        page_size=page_size,
+                        page_num=page_num
+                    )
+                    
+                    if not items:
+                        # No more items, break the loop
+                        break
+                    
+                    all_items.extend(items)
+                    logger.info(f"Page {page_num}: Retrieved {len(items)} items, total so far: {len(all_items)}")
+                    
+                    # If we got fewer items than page_size, we've reached the end
+                    if len(items) < page_size:
+                        break
+                    
+                    page_num += 1
+                    
+                    # Safety check to prevent infinite loops
+                    if page_num > 100:  # Maximum 10,000 items
+                        logger.warning("Reached maximum page limit (100), stopping pagination")
+                        break
+                        
+                except Exception as e:
+                    logger.error(f"Error on page {page_num}: {e}")
                     break
-                
-                all_items.extend(items)
-                
-                # Check if we got fewer items than page size (last page)
-                if len(items) < page_size:
-                    break
-                
-                page_num += 1
-                
-            except APIError as e:
-                logger.error(f"Error fetching work items page {page_num}: {e}")
-                break
-        
-        logger.info(f"Retrieved {len(all_items)} total work items")
+                    
+        except Exception as e:
+            logger.error(f"Error in get_all_work_items: {e}")
+            
+        logger.info(f"Total work items retrieved: {len(all_items)}")
         return all_items
-    
-    def get_work_item_details(self, item_key: str, work_item_type_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+
+    def get_projects(self) -> List[Dict[str, Any]]:
         """
-        Get detailed information for a specific work item
+        Get all project work items
+        
+        Returns:
+            List of project work items
+        """
+        logger.info("Fetching all project work items")
+        return self.get_all_work_items(work_item_type_keys=["642ec373f4af608bb3cb1c90"])
+
+    def get_stories(self) -> List[Dict[str, Any]]:
+        """
+        Get all story/feature work items
+        
+        Returns:
+            List of story/feature work items
+        """
+        logger.info("Fetching all story/feature work items")
+        return self.get_all_work_items(work_item_type_keys=["story"])
+
+    def find_project_by_code(self, project_code: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a project by its code
         
         Args:
-            item_key: Work item key/ID
-            work_item_type_id: Work item type ID (optional, for type-specific endpoint)
+            project_code: Project code to search for
             
         Returns:
-            Work item details or None if not found
+            Project work item or None if not found
         """
-        # Try work item type specific endpoint first if type is provided
-        if work_item_type_id:
-            endpoint = f"{self.client.project_key}/work_item_types/{work_item_type_id}/work_items/{item_key}"
+        logger.info(f"Searching for project with code: {project_code}")
+        projects = self.get_projects()
+        
+        for project in projects:
+            # Check various possible field names for project code
+            project_fields = project.get('fields', {}) if 'fields' in project else project
             
-            try:
-                data = self.client.get(
-                    endpoint=endpoint,
-                    description=f"fetch work item {item_key} (type-specific)"
-                )
+            code_fields = ['code', 'project_code', 'projectCode', 'name', 'title']
+            for field in code_fields:
+                if field in project_fields and project_fields[field] == project_code:
+                    logger.info(f"Found project with code {project_code}: {project.get('id', 'unknown')}")
+                    return project
+                    
+        logger.warning(f"Project with code {project_code} not found")
+        return None
+
+    def find_story_by_id(self, story_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a story/feature by its ID
+        
+        Args:
+            story_id: Story ID to search for
+            
+        Returns:
+            Story work item or None if not found
+        """
+        logger.info(f"Searching for story with ID: {story_id}")
+        
+        # First try to get by ID directly
+        story = self.get_work_item_by_id(story_id)
+        if story:
+            return story
+            
+        # If direct lookup fails, search through all stories
+        stories = self.get_stories()
+        
+        for story in stories:
+            story_id_field = story.get('id') or story.get('fields', {}).get('id')
+            if story_id_field == story_id:
+                logger.info(f"Found story with ID {story_id}")
+                return story
                 
-                logger.info(f"Retrieved details for work item: {item_key}")
-                return data
-                
-            except APIError as e:
-                logger.warning(f"Work item {item_key} not found with type endpoint, trying generic endpoint: {e}")
-        
-        # Try generic endpoint
-        try:
-            endpoint = f"{self.client.project_key}/work_items/{item_key}"
-            data = self.client.get(
-                endpoint=endpoint,
-                description=f"fetch work item {item_key}"
-            )
-            
-            logger.info(f"Retrieved details for work item: {item_key}")
-            return data
-            
-        except APIError as e:
-            logger.warning(f"Work item {item_key} not found or inaccessible: {e}")
-            return None
-    
-    def search_work_items(self, query: str, item_types: Optional[List[str]] = None,
-                         limit: int = 50) -> List[Dict[str, Any]]:
-        """
-        Search work items by query
-        
-        Args:
-            query: Search query string
-            item_types: List of item types to search in
-            limit: Maximum number of results
-            
-        Returns:
-            List of matching work items
-        """
-        endpoint = f"{self.client.project_key}/work_items/search"
-        
-        json_data = {
-            "query": query,
-            "limit": limit
-        }
-        
-        if item_types:
-            json_data["item_types"] = item_types
-        
-        try:
-            data = self.client.post(
-                endpoint=endpoint,
-                json_data=json_data,
-                description=f"search work items: {query}"
-            )
-            
-            results = data.get('items', [])
-            logger.info(f"Found {len(results)} work items matching query: {query}")
-            
-            return results
-            
-        except APIError as e:
-            logger.error(f"Work item search failed: {e}")
-            raise
-    
-    def create_work_item_objects(self, items_data: List[Dict[str, Any]]) -> List[WorkItem]:
-        """
-        Convert raw work item data to WorkItem objects
-        
-        Args:
-            items_data: List of raw work item data
-            
-        Returns:
-            List of WorkItem objects
-        """
-        work_items = []
-        
-        for item_data in items_data:
-            try:
-                work_item = WorkItem.from_dict(item_data)
-                work_items.append(work_item)
-            except Exception as e:
-                logger.warning(f"Failed to parse work item: {e}")
-                continue
-        
-        logger.info(f"Created {len(work_items)} WorkItem objects")
-        return work_items 
+        logger.warning(f"Story with ID {story_id} not found")
+        return None 

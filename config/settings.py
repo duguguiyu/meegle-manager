@@ -1,12 +1,48 @@
 """
-Meegle Manager Configuration Settings
+Configuration settings for Meegle Manager
 """
+
 import os
+import logging
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging to file
+def setup_logging():
+    """Setup logging configuration with file output
+    
+    Returns:
+        Path to the log file
+    """
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    # Create log filename with timestamp
+    log_filename = f"meegle_api_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    log_file = log_dir / log_filename
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.StreamHandler()  # Also log to console
+        ]
+    )
+    
+    # Set specific logger levels
+    logging.getLogger("meegle_sdk").setLevel(logging.INFO)
+    logging.getLogger("meegle_business").setLevel(logging.INFO)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    
+    return log_file
 
 # Default Meegle API Configuration
 DEFAULT_MEEGLE_CONFIG = {

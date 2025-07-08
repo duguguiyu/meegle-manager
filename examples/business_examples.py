@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """
-Business Layer Examples - Demonstrate how to use Meegle Business Layer
+Business Examples - Demonstrate how to use Meegle Business Layer
 """
 
 import sys
 import logging
 from pathlib import Path
 
-# Add parent directory to path to import modules
+# Add parent directory to path to import meegle packages
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from meegle_sdk import MeegleSDK
-from meegle_business import TimelineExtractor, CSVExporter
+from meegle_business.timeline.extractor import TimelineExtractor
+from meegle_business.export.csv_exporter import CSVExporter
 from meegle_business.timeline.models import TimelineData
+from config.settings import get_meegle_config, setup_logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Initialize logging first
+log_file = setup_logging()
+
 logger = logging.getLogger(__name__)
+logger.info(f"Business examples started. Log file: {log_file}")
 
 
 def example_timeline_extraction(sdk: MeegleSDK):
@@ -38,10 +39,7 @@ def example_timeline_extraction(sdk: MeegleSDK):
         print(f"Extracting timeline data from chart: {chart_id}")
         
         # Extract timeline for last 7 days
-        timeline_data = extractor.extract_timeline_by_chart_id(
-            chart_id=chart_id,
-            days_back=7
-        )
+        timeline_data = extractor.extract_timeline_last_7_days()
         
         if timeline_data.entries:
             print(f"✅ Extracted {len(timeline_data.entries)} timeline entries")
@@ -122,10 +120,7 @@ def example_timeline_filtering(sdk: MeegleSDK):
         
         # Extract timeline data
         chart_id = "7452978372562386950"
-        timeline_data = extractor.extract_timeline_by_chart_id(
-            chart_id=chart_id,
-            days_back=7
-        )
+        timeline_data = extractor.extract_timeline_last_7_days()
         
         if not timeline_data.entries:
             print("❌ No timeline data to filter")
@@ -174,9 +169,9 @@ def example_multiple_exports(sdk: MeegleSDK):
         
         # Extract different time periods
         timelines = {
-            'today': extractor.extract_current_day_timeline(chart_data),
-            'yesterday': extractor.extract_yesterday_timeline(chart_data),
-            'last_7_days': extractor.extract_date_range_timeline(chart_data, 7)
+            'today': extractor.extract_timeline_today(),
+            'yesterday': extractor.extract_timeline_yesterday(),
+            'last_7_days': extractor.extract_timeline_last_7_days()
         }
         
         # Export all timelines
@@ -215,10 +210,7 @@ def example_complete_workflow(sdk: MeegleSDK):
         # Step 3: Extract timeline data
         print("Step 3: Extracting timeline data...")
         chart_id = "7452978372562386950"
-        timeline_data = extractor.extract_timeline_by_chart_id(
-            chart_id=chart_id,
-            days_back=7
-        )
+        timeline_data = extractor.extract_timeline_last_7_days()
         
         if not timeline_data.entries:
             print("❌ No timeline data extracted")
