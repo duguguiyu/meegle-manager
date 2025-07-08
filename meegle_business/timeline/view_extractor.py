@@ -215,12 +215,12 @@ class ViewTimelineExtractor(TimelineExtractor):
             List of timeline entries for this schedule
         """
         owners = schedule.get('owners', [])
-        points = schedule.get('points', 0)
+        actual_work_time = schedule.get('actual_work_time', 0)
         start_date = schedule.get('estimate_start_date')
         end_date = schedule.get('estimate_end_date')
         
-        if not owners or points <= 0:
-            logger.debug(f"Schedule has no owners or points: {schedule}")
+        if not owners or actual_work_time <= 0:
+            logger.debug(f"Schedule has no owners or work time: {schedule}")
             return []
         
         # Convert timestamps to dates
@@ -231,10 +231,10 @@ class ViewTimelineExtractor(TimelineExtractor):
         
         # Calculate workload distribution
         total_days = (end_dt - start_dt).days + 1
-        daily_hours_per_person = points / len(owners) / total_days if total_days > 0 else 0
+        daily_hours_per_person = actual_work_time / len(owners) / total_days if total_days > 0 else 0
         
         if daily_hours_per_person <= 0:
-            logger.debug(f"No workload to distribute: points={points}, owners={len(owners)}, days={total_days}")
+            logger.debug(f"No workload to distribute: actual_work_time={actual_work_time}, owners={len(owners)}, days={total_days}")
             return []
         
         # Generate timeline entries for each owner and each day

@@ -158,7 +158,8 @@ class WorkflowAPI:
                         'owners': schedule.get('owners', []),
                         'estimate_start_date': schedule.get('estimate_start_date'),
                         'estimate_end_date': schedule.get('estimate_end_date'),
-                        'points': schedule.get('points', 0)
+                        'points': schedule.get('points', 0),
+                        'actual_work_time': schedule.get('actual_work_time', 0)
                     }
                     schedules.append(schedule_info)
         else:
@@ -175,7 +176,8 @@ class WorkflowAPI:
                     'owners': node_schedule.get('owners', []),
                     'estimate_start_date': node_schedule.get('estimate_start_date'),
                     'estimate_end_date': node_schedule.get('estimate_end_date'),
-                    'points': node_schedule.get('points', 0)
+                    'points': node_schedule.get('points', 0),
+                    'actual_work_time': node_schedule.get('actual_work_time', 0)
                 }
                 schedules.append(schedule_info)
             
@@ -191,7 +193,8 @@ class WorkflowAPI:
                     'owners': schedule.get('owners', []),
                     'estimate_start_date': schedule.get('estimate_start_date'),
                     'estimate_end_date': schedule.get('estimate_end_date'),
-                    'points': schedule.get('points', 0)
+                    'points': schedule.get('points', 0),
+                    'actual_work_time': schedule.get('actual_work_time', 0)
                 }
                 schedules.append(schedule_info)
         
