@@ -161,7 +161,11 @@ class ViewTimelineExtractor(TimelineExtractor):
                     logger.debug(f"Error processing node {node.get('id')}: {e}")
                     continue
             
-            return all_entries
+            # Aggregate entries by date and user for this work item
+            aggregated_entries = self._aggregate_work_item_entries(all_entries)
+            logger.debug(f"Work item {work_item_id}: {len(all_entries)} entries aggregated to {len(aggregated_entries)} entries")
+            
+            return aggregated_entries
             
         except Exception as e:
             logger.debug(f"Error processing workflow for work item {work_item_id}: {e}")
@@ -276,6 +280,60 @@ class ViewTimelineExtractor(TimelineExtractor):
         
         logger.debug(f"Generated {len(entries)} timeline entries for schedule")
         return entries
+    
+    def _aggregate_work_item_entries(self, entries: List[TimelineEntry]) -> List[TimelineEntry]:
+        """
+        Aggregate timeline entries by date and user for a single work item
+        
+        Args:
+            entries: List of timeline entries for a work item
+            
+        Returns:
+            List of aggregated timeline entries
+        """
+        if not entries:
+            return []
+        
+        # Group entries by (date, member_email)
+        aggregation_map = {}
+        
+        for entry in entries:
+            # Skip entries with zero work hours
+            if entry.work_load_hours <= 0:
+                continue
+                
+            # Create aggregation key
+            key = (entry.date, entry.member_email)
+            
+            if key not in aggregation_map:
+                # First entry for this date/user combination
+                aggregation_map[key] = entry
+            else:
+                # Aggregate with existing entry
+                existing_entry = aggregation_map[key]
+                
+                # Sum work hours
+                existing_entry.work_load_hours += entry.work_load_hours
+                
+                # Combine descriptions (avoid duplicates)
+                if entry.description and entry.description not in existing_entry.description:
+                    if existing_entry.description:
+                        existing_entry.description += f"; {entry.description}"
+                    else:
+                        existing_entry.description = entry.description
+                
+                # Combine remarks (avoid duplicates)
+                if entry.remark and entry.remark not in existing_entry.remark:
+                    if existing_entry.remark:
+                        existing_entry.remark += f"; {entry.remark}"
+                    else:
+                        existing_entry.remark = entry.remark
+        
+        # Convert back to list and filter out zero work hours (just in case)
+        aggregated_entries = [entry for entry in aggregation_map.values() if entry.work_load_hours > 0]
+        
+        logger.debug(f"Aggregated {len(entries)} entries to {len(aggregated_entries)} entries")
+        return aggregated_entries
     
     def _extract_project_info_from_work_item(self, work_item: Dict[str, Any]) -> Dict[str, str]:
         """
