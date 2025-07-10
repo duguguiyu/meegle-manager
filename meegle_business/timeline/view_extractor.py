@@ -511,10 +511,10 @@ class ViewTimelineExtractor(TimelineExtractor):
     def _get_fallback_project_info(self) -> Dict[str, str]:
         """Get fallback project information when project lookup fails"""
         return {
-            'project_code': 'Unknown',
-            'project_type': 'Product',
-            'project_status': 'Open',
-            'project_name': ''  # Keep empty as per requirement
+            'project_code': '',
+            'project_type': '',
+            'project_status': '',
+            'project_name': ''
         }
     
     def get_project_info_by_id(self, project_id: str) -> Optional[Dict[str, str]]:
