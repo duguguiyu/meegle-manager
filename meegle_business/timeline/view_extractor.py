@@ -251,23 +251,30 @@ class ViewTimelineExtractor(TimelineExtractor):
                     # Get user email from owner key
                     user_email = self._get_user_email_from_key(owner_key)
                     
+                    # Parse project code components
+                    project_code = project_info.get('project_code', 'Unknown')
+                    market_region, category_function, entity = self._parse_project_code(project_code)
+                    
+                    # Get activity code from story template
+                    activity_code = self._get_activity_code_from_template(work_item)
+                    
                     # Create timeline entry
                     entry = TimelineEntry(
                         date=current_date.strftime('%Y-%m-%d'),
-                        project_code=project_info.get('project_code', 'Unknown'),
+                        project_code=project_code,
                         project_type=project_info.get('project_type', 'Product'),
                         project_status=project_info.get('project_status', 'Open'),
-                        project_name=project_info.get('project_name', 'Unknown Project'),
-                        activity_code=schedule.get('type', 'Development'),
-                        market_region='',
-                        category_function='Product',
-                        entity='',
+                        project_name=project_info.get('project_name', ''),  # Keep empty if not available
+                        activity_code=activity_code,
+                        market_region=market_region,
+                        category_function=category_function,
+                        entity=entity,
                         member_email=user_email,
                         work_load_hours=daily_hours_per_person,
                         submission_date=datetime.now().strftime('%Y-%m-%d'),
-                        description=f"{node_name} - {schedule.get('task_name', 'Node work')}",
+                        description=work_item.get('name', ''),  # Use story name
                         manager_signoff='',
-                        remark=f"Work item: {work_item.get('id')}, Node: {schedule.get('node_id')}"
+                        remark=f"@https://project.larksuite.com/advance_ai/story/detail/{work_item.get('id')}"
                     )
                     
                     entries.append(entry)
@@ -335,6 +342,139 @@ class ViewTimelineExtractor(TimelineExtractor):
         logger.debug(f"Aggregated {len(entries)} entries to {len(aggregated_entries)} entries")
         return aggregated_entries
     
+    def _parse_project_code(self, project_code: str) -> tuple[str, str, str]:
+        """
+        Parse project code to extract market/region, category/function, and entity
+        
+        Format: [Type]-[Market/Region]-[Entity]-[Category/Function]-[Unique Identifier][-Version Number]
+        
+        Args:
+            project_code: Project code string
+            
+        Returns:
+            Tuple of (market_region, category_function, entity)
+        """
+        if not project_code or project_code == 'Unknown':
+            return '', '', ''
+        
+        try:
+            # Split by dash
+            parts = project_code.split('-')
+            
+            # Need at least 4 parts: [Type]-[Market/Region]-[Entity]-[Category/Function]
+            if len(parts) >= 4:
+                market_region = parts[1]
+                entity = parts[2]
+                category_function = parts[3]
+                return market_region, category_function, entity
+            else:
+                # Format doesn't match standard, return empty strings
+                return '', '', ''
+                
+        except Exception as e:
+            logger.debug(f"Error parsing project code {project_code}: {e}")
+            return '', '', ''
+    
+    def _get_activity_code_from_template(self, work_item: Dict[str, Any]) -> str:
+        """
+        Get activity code based on story template
+        
+        Args:
+            work_item: Work item data containing template information
+            
+        Returns:
+            Activity code string (based on template_id or intelligent inference)
+        """
+        # Try to get template ID from fields first (most reliable)
+        fields = work_item.get('fields', [])
+        for field in fields:
+            if isinstance(field, dict) and field.get('field_key') == 'template':
+                field_value = field.get('field_value', {})
+                if isinstance(field_value, dict):
+                    template_id = field_value.get('id')
+                    if template_id:
+                        # Enhanced template mapping with intelligent inference
+                        activity_code = self._map_template_id_to_activity_code(template_id, work_item)
+                        return activity_code
+        
+        # Fallback: try top-level template_id
+        template_id = work_item.get('template_id')
+        if template_id:
+            activity_code = self._map_template_id_to_activity_code(template_id, work_item)
+            return activity_code
+        
+        # Final fallback: intelligent inference based on work item content
+        return self._infer_activity_code_from_content(work_item)
+    
+    def _map_template_id_to_activity_code(self, template_id: int, work_item: Dict[str, Any]) -> str:
+        """
+        Map template ID to activity code with intelligent inference
+        
+        Args:
+            template_id: Template ID
+            work_item: Work item data for context
+            
+        Returns:
+            Activity code string
+        """
+        # Known template mappings based on documentation
+        template_mapping = {
+            95066: 'Feature',      # Feature development template
+            96984: 'Bug',          # Bug fixing template
+            116177: 'Operation',   # Operation template
+            118092: 'Enhancement', # Enhancement template
+            123041: 'Research',    # Research template
+        }
+        
+        # If we have a direct mapping, use it
+        if template_id in template_mapping:
+            return template_mapping[template_id]
+        
+        # If not, try to infer from work item content
+        inferred_code = self._infer_activity_code_from_content(work_item)
+        if inferred_code != 'Development':  # If we got a specific inference
+            return inferred_code
+        
+        # Fallback to template ID
+        return f'Template_{template_id}'
+    
+    def _infer_activity_code_from_content(self, work_item: Dict[str, Any]) -> str:
+        """
+        Infer activity code from work item content
+        
+        Args:
+            work_item: Work item data
+            
+        Returns:
+            Inferred activity code
+        """
+        work_item_name = work_item.get('name', '').lower()
+        description = work_item.get('description', '').lower()
+        
+        # Keywords for different activity types
+        bug_keywords = ['bug', 'issue', 'fix', 'defect', 'error', '问题', '缺陷', '修复', '错误']
+        research_keywords = ['research', 'investigation', 'analysis', 'study', 'explore', 
+                           '研究', '调研', '分析', '探索', '调查']
+        enhancement_keywords = ['enhancement', 'improvement', 'optimize', 'upgrade', 'refactor',
+                              '优化', '改进', '增强', '升级', '重构']
+        operation_keywords = ['deploy', 'ops', 'operation', 'maintenance', 'config', 'setup',
+                            '部署', '运维', '运营', '维护', '配置']
+        
+        # Check work item name and description for keywords
+        content = f"{work_item_name} {description}"
+        
+        if any(keyword in content for keyword in bug_keywords):
+            return 'Bug'
+        elif any(keyword in content for keyword in research_keywords):
+            return 'Research'
+        elif any(keyword in content for keyword in enhancement_keywords):
+            return 'Enhancement'
+        elif any(keyword in content for keyword in operation_keywords):
+            return 'Operation'
+        
+        # Default to Feature for development work
+        return 'Feature'
+    
     def _extract_project_info_from_work_item(self, work_item: Dict[str, Any]) -> Dict[str, str]:
         """
         Extract project information from work item with optimized caching
@@ -374,7 +514,7 @@ class ViewTimelineExtractor(TimelineExtractor):
             'project_code': 'Unknown',
             'project_type': 'Product',
             'project_status': 'Open',
-            'project_name': 'Unknown Project'
+            'project_name': ''  # Keep empty as per requirement
         }
     
     def get_project_info_by_id(self, project_id: str) -> Optional[Dict[str, str]]:
@@ -408,7 +548,7 @@ class ViewTimelineExtractor(TimelineExtractor):
                     'project_code': self._extract_field_value(project, ['name'], project_id),
                     'project_type': self._extract_field_value(project, ['template'], 'Product'),
                     'project_status': self._extract_field_value(project, ['work_item_status'], 'Open'),
-                    'project_name': self._extract_field_value(project, ['field_28829a'], 'Unknown Project')
+                    'project_name': self._extract_field_value(project, ['field_28829a'], '')  # Keep empty if not available
                 }
             
         except Exception as e:
