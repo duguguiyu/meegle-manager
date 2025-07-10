@@ -227,9 +227,52 @@ class CSVExporter:
         return summary 
 
     def export_view_timeline_to_csv(self, view_id: str, extractor, 
-                                   filename: str = None) -> Path:
+                                   filename: str = None,
+                                   start_date: str = None,
+                                   end_date: str = None) -> Path:
         """
-        Export view-based timeline data to CSV
+        Export view-based timeline data to CSV with optional date filtering
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            start_date: Start date filter in YYYY-MM-DD format (inclusive)
+            end_date: End date filter in YYYY-MM-DD format (inclusive)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}"
+            if start_date or end_date:
+                date_suffix = f"_{start_date or 'start'}_to_{end_date or 'end'}"
+                filename += date_suffix
+        
+        logger.info(f"Exporting view timeline for view {view_id}")
+        if start_date or end_date:
+            logger.info(f"Date filter: {start_date or 'no start'} to {end_date or 'no end'}")
+        
+        try:
+            # Extract timeline data from view with date filtering
+            timeline_data = extractor.extract_timeline_from_view(
+                view_id, 'story', None, start_date, end_date
+            )
+            
+            # Export to CSV
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported view timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export view timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_this_week(self, view_id: str, extractor, 
+                                      filename: str = None) -> Path:
+        """
+        Export view-based timeline data for this week to CSV
         
         Args:
             view_id: View ID to extract timeline from
@@ -240,20 +283,192 @@ class CSVExporter:
             Path to the created CSV file
         """
         if not filename:
-            filename = f"view_timeline_{view_id}"
+            filename = f"view_timeline_{view_id}_this_week"
         
-        logger.info(f"Exporting view timeline for view {view_id}")
+        logger.info(f"Exporting this week's timeline for view {view_id}")
         
         try:
-            # Extract timeline data from view
-            timeline_data = extractor.extract_timeline_from_view(view_id, 'story')
-            
-            # Export to CSV
+            timeline_data = extractor.extract_timeline_this_week(view_id, 'story')
             filepath = self.export_timeline_to_csv(timeline_data, filename)
             
-            logger.info(f"Successfully exported view timeline for {view_id} to {filepath}")
+            logger.info(f"Successfully exported this week's timeline for {view_id} to {filepath}")
             return filepath
             
         except Exception as e:
-            logger.error(f"Failed to export view timeline for {view_id}: {e}")
+            logger.error(f"Failed to export this week's timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_last_week(self, view_id: str, extractor, 
+                                      filename: str = None) -> Path:
+        """
+        Export view-based timeline data for last week to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}_last_week"
+        
+        logger.info(f"Exporting last week's timeline for view {view_id}")
+        
+        try:
+            timeline_data = extractor.extract_timeline_last_week(view_id, 'story')
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported last week's timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export last week's timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_this_month(self, view_id: str, extractor, 
+                                       filename: str = None) -> Path:
+        """
+        Export view-based timeline data for this month to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}_this_month"
+        
+        logger.info(f"Exporting this month's timeline for view {view_id}")
+        
+        try:
+            timeline_data = extractor.extract_timeline_this_month(view_id, 'story')
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported this month's timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export this month's timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_last_month(self, view_id: str, extractor, 
+                                       filename: str = None) -> Path:
+        """
+        Export view-based timeline data for last month to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}_last_month"
+        
+        logger.info(f"Exporting last month's timeline for view {view_id}")
+        
+        try:
+            timeline_data = extractor.extract_timeline_last_month(view_id, 'story')
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported last month's timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export last month's timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_this_quarter(self, view_id: str, extractor, 
+                                         filename: str = None) -> Path:
+        """
+        Export view-based timeline data for this quarter to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}_this_quarter"
+        
+        logger.info(f"Exporting this quarter's timeline for view {view_id}")
+        
+        try:
+            timeline_data = extractor.extract_timeline_this_quarter(view_id, 'story')
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported this quarter's timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export this quarter's timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_last_quarter(self, view_id: str, extractor, 
+                                         filename: str = None) -> Path:
+        """
+        Export view-based timeline data for last quarter to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}_last_quarter"
+        
+        logger.info(f"Exporting last quarter's timeline for view {view_id}")
+        
+        try:
+            timeline_data = extractor.extract_timeline_last_quarter(view_id, 'story')
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported last quarter's timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export last quarter's timeline for {view_id}: {e}")
+            raise
+    
+    def export_view_timeline_last_n_days(self, view_id: str, extractor, days: int,
+                                        filename: str = None) -> Path:
+        """
+        Export view-based timeline data for the last N days to CSV
+        
+        Args:
+            view_id: View ID to extract timeline from
+            extractor: ViewTimelineExtractor instance
+            days: Number of days to go back
+            filename: Optional filename (auto-generated if not provided)
+            
+        Returns:
+            Path to the created CSV file
+        """
+        if not filename:
+            filename = f"view_timeline_{view_id}_last_{days}_days"
+        
+        logger.info(f"Exporting last {days} days timeline for view {view_id}")
+        
+        try:
+            timeline_data = extractor.extract_timeline_last_n_days(view_id, days, 'story')
+            filepath = self.export_timeline_to_csv(timeline_data, filename)
+            
+            logger.info(f"Successfully exported last {days} days timeline for {view_id} to {filepath}")
+            return filepath
+            
+        except Exception as e:
+            logger.error(f"Failed to export last {days} days timeline for {view_id}: {e}")
             raise 

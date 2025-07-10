@@ -43,19 +43,28 @@ class ViewTimelineExtractor(TimelineExtractor):
         self._batch_size = 50  # Process work items in batches
         
     def extract_timeline_from_view(self, view_id: str, work_item_type_key: str = "story", 
-                                  max_items: Optional[int] = None) -> TimelineData:
+                                  max_items: Optional[int] = None,
+                                  start_date: Optional[str] = None,
+                                  end_date: Optional[str] = None) -> TimelineData:
         """
-        Extract timeline data from a specific view
+        Extract timeline data from a specific view with optional date filtering
         
         Args:
             view_id: View ID to extract timeline from
             work_item_type_key: Type of work items to process (default: "story")
             max_items: Maximum number of work items to process (for testing/debugging)
+            start_date: Start date filter in YYYY-MM-DD format (inclusive)
+            end_date: End date filter in YYYY-MM-DD format (inclusive)
             
         Returns:
-            TimelineData object containing timeline entries
+            TimelineData object containing timeline entries within the specified date range
         """
         logger.info(f"Extracting timeline from view: {view_id}")
+        if start_date or end_date:
+            logger.info(f"Date filter: {start_date or 'no start'} to {end_date or 'no end'}")
+        
+        # Parse and validate date filters
+        start_dt, end_dt = self._parse_date_filters(start_date, end_date)
         
         try:
             # Step 1: Get work item IDs from view
@@ -102,7 +111,13 @@ class ViewTimelineExtractor(TimelineExtractor):
                     logger.error(f"Error processing batch {i//self._batch_size + 1}: {e}")
                     continue
             
-            # Step 3: Calculate statistics
+            # Step 3: Apply date filtering if specified
+            if start_dt or end_dt:
+                filtered_entries = self._filter_entries_by_date(all_entries, start_dt, end_dt)
+                logger.info(f"Date filtering: {len(all_entries)} entries -> {len(filtered_entries)} entries")
+                all_entries = filtered_entries
+            
+            # Step 4: Calculate statistics
             total_hours = sum(entry.work_load_hours for entry in all_entries)
             unique_users = len(set(entry.member_email for entry in all_entries))
             date_range = self._calculate_date_range(all_entries)
@@ -121,6 +136,126 @@ class ViewTimelineExtractor(TimelineExtractor):
         except Exception as e:
             logger.error(f"Failed to extract timeline from view {view_id}: {e}")
             return TimelineData(entries=[], total_hours=0.0, unique_users=0, date_range="")
+    
+    def extract_timeline_this_week(self, view_id: str, work_item_type_key: str = "story", 
+                                  max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for this week (Monday to Sunday)
+        
+        Args:
+            view_id: View ID to extract timeline from
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for this week
+        """
+        start_date, end_date = self._get_this_week_range()
+        logger.info(f"Extracting timeline for this week: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
+    
+    def extract_timeline_last_week(self, view_id: str, work_item_type_key: str = "story", 
+                                  max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for last week (Monday to Sunday)
+        
+        Args:
+            view_id: View ID to extract timeline from
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for last week
+        """
+        start_date, end_date = self._get_last_week_range()
+        logger.info(f"Extracting timeline for last week: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
+    
+    def extract_timeline_this_month(self, view_id: str, work_item_type_key: str = "story", 
+                                   max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for this month (1st to last day)
+        
+        Args:
+            view_id: View ID to extract timeline from
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for this month
+        """
+        start_date, end_date = self._get_this_month_range()
+        logger.info(f"Extracting timeline for this month: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
+    
+    def extract_timeline_last_month(self, view_id: str, work_item_type_key: str = "story", 
+                                   max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for last month (1st to last day)
+        
+        Args:
+            view_id: View ID to extract timeline from
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for last month
+        """
+        start_date, end_date = self._get_last_month_range()
+        logger.info(f"Extracting timeline for last month: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
+    
+    def extract_timeline_this_quarter(self, view_id: str, work_item_type_key: str = "story", 
+                                     max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for this quarter
+        
+        Args:
+            view_id: View ID to extract timeline from
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for this quarter
+        """
+        start_date, end_date = self._get_this_quarter_range()
+        logger.info(f"Extracting timeline for this quarter: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
+    
+    def extract_timeline_last_quarter(self, view_id: str, work_item_type_key: str = "story", 
+                                     max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for last quarter
+        
+        Args:
+            view_id: View ID to extract timeline from
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for last quarter
+        """
+        start_date, end_date = self._get_last_quarter_range()
+        logger.info(f"Extracting timeline for last quarter: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
+    
+    def extract_timeline_last_n_days(self, view_id: str, days: int, work_item_type_key: str = "story", 
+                                    max_items: Optional[int] = None) -> TimelineData:
+        """
+        Extract timeline data for the last N days
+        
+        Args:
+            view_id: View ID to extract timeline from
+            days: Number of days to go back
+            work_item_type_key: Type of work items to process (default: "story")
+            max_items: Maximum number of work items to process (for testing/debugging)
+            
+        Returns:
+            TimelineData object containing timeline entries for the last N days
+        """
+        start_date, end_date = self._get_last_n_days_range(days)
+        logger.info(f"Extracting timeline for last {days} days: {start_date} to {end_date}")
+        return self.extract_timeline_from_view(view_id, work_item_type_key, max_items, start_date, end_date)
     
     def _process_work_item_workflow(self, work_item: Dict[str, Any], work_item_type_key: str) -> List[TimelineEntry]:
         """
@@ -668,3 +803,166 @@ class ViewTimelineExtractor(TimelineExtractor):
             'failed_project_ids_count': len(self._failed_project_ids),
             'failed_project_ids': list(self._failed_project_ids)
         } 
+    
+    def _parse_date_filters(self, start_date: Optional[str], end_date: Optional[str]) -> Tuple[Optional[datetime], Optional[datetime]]:
+        """
+        Parse and validate date filter strings
+        
+        Args:
+            start_date: Start date string in YYYY-MM-DD format
+            end_date: End date string in YYYY-MM-DD format
+            
+        Returns:
+            Tuple of (start_datetime, end_datetime) or (None, None) if parsing fails
+        """
+        start_dt = None
+        end_dt = None
+        
+        try:
+            if start_date:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                
+            if end_date:
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                
+            # Validate date range
+            if start_dt and end_dt and start_dt > end_dt:
+                logger.warning(f"Start date {start_date} is after end date {end_date}, swapping them")
+                start_dt, end_dt = end_dt, start_dt
+                
+        except ValueError as e:
+            logger.error(f"Invalid date format: {e}. Use YYYY-MM-DD format.")
+            return None, None
+            
+        return start_dt, end_dt
+    
+    def _filter_entries_by_date(self, entries: List[TimelineEntry], 
+                               start_dt: Optional[datetime], end_dt: Optional[datetime]) -> List[TimelineEntry]:
+        """
+        Filter timeline entries by date range
+        
+        Args:
+            entries: List of timeline entries
+            start_dt: Start date (inclusive)
+            end_dt: End date (inclusive)
+            
+        Returns:
+            Filtered list of timeline entries
+        """
+        if not start_dt and not end_dt:
+            return entries
+        
+        filtered_entries = []
+        
+        for entry in entries:
+            try:
+                entry_date = datetime.strptime(entry.date, '%Y-%m-%d')
+                
+                # Check if entry date is within range
+                if start_dt and entry_date < start_dt:
+                    continue
+                if end_dt and entry_date > end_dt:
+                    continue
+                    
+                filtered_entries.append(entry)
+                
+            except ValueError:
+                logger.warning(f"Invalid date format in entry: {entry.date}")
+                continue
+        
+        return filtered_entries
+    
+    def _get_this_week_range(self) -> Tuple[str, str]:
+        """Get start and end dates for this week (Monday to Sunday)"""
+        today = datetime.now()
+        monday = today - timedelta(days=today.weekday())
+        sunday = monday + timedelta(days=6)
+        return monday.strftime('%Y-%m-%d'), sunday.strftime('%Y-%m-%d')
+    
+    def _get_last_week_range(self) -> Tuple[str, str]:
+        """Get start and end dates for last week (Monday to Sunday)"""
+        today = datetime.now()
+        last_monday = today - timedelta(days=today.weekday() + 7)
+        last_sunday = last_monday + timedelta(days=6)
+        return last_monday.strftime('%Y-%m-%d'), last_sunday.strftime('%Y-%m-%d')
+    
+    def _get_this_month_range(self) -> Tuple[str, str]:
+        """Get start and end dates for this month"""
+        today = datetime.now()
+        first_day = today.replace(day=1)
+        
+        # Get last day of month
+        if today.month == 12:
+            next_month = today.replace(year=today.year + 1, month=1, day=1)
+        else:
+            next_month = today.replace(month=today.month + 1, day=1)
+        last_day = next_month - timedelta(days=1)
+        
+        return first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')
+    
+    def _get_last_month_range(self) -> Tuple[str, str]:
+        """Get start and end dates for last month"""
+        today = datetime.now()
+        
+        # Get first day of last month
+        if today.month == 1:
+            first_day = today.replace(year=today.year - 1, month=12, day=1)
+        else:
+            first_day = today.replace(month=today.month - 1, day=1)
+        
+        # Get last day of last month
+        last_day = today.replace(day=1) - timedelta(days=1)
+        
+        return first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')
+    
+    def _get_this_quarter_range(self) -> Tuple[str, str]:
+        """Get start and end dates for this quarter"""
+        today = datetime.now()
+        quarter = (today.month - 1) // 3 + 1
+        
+        # First month of quarter
+        first_month = (quarter - 1) * 3 + 1
+        first_day = today.replace(month=first_month, day=1)
+        
+        # Last month of quarter
+        last_month = quarter * 3
+        if last_month == 12:
+            next_quarter_start = today.replace(year=today.year + 1, month=1, day=1)
+        else:
+            next_quarter_start = today.replace(month=last_month + 1, day=1)
+        last_day = next_quarter_start - timedelta(days=1)
+        
+        return first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')
+    
+    def _get_last_quarter_range(self) -> Tuple[str, str]:
+        """Get start and end dates for last quarter"""
+        today = datetime.now()
+        current_quarter = (today.month - 1) // 3 + 1
+        
+        if current_quarter == 1:
+            # Last quarter was Q4 of previous year
+            last_quarter = 4
+            year = today.year - 1
+        else:
+            last_quarter = current_quarter - 1
+            year = today.year
+        
+        # First month of last quarter
+        first_month = (last_quarter - 1) * 3 + 1
+        first_day = datetime(year, first_month, 1)
+        
+        # Last month of last quarter
+        last_month = last_quarter * 3
+        if last_month == 12:
+            next_quarter_start = datetime(year + 1, 1, 1)
+        else:
+            next_quarter_start = datetime(year, last_month + 1, 1)
+        last_day = next_quarter_start - timedelta(days=1)
+        
+        return first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')
+    
+    def _get_last_n_days_range(self, days: int) -> Tuple[str, str]:
+        """Get start and end dates for the last N days"""
+        today = datetime.now()
+        start_date = today - timedelta(days=days - 1)  # -1 because we include today
+        return start_date.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d') 
