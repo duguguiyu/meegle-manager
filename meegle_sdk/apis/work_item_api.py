@@ -338,15 +338,17 @@ class WorkItemAPI:
                 all_work_item_ids.extend(work_item_ids)
                 logger.info(f"Page {page_num}: Retrieved {len(work_item_ids)} work item IDs")
                 
-                # Check if we have more pages
-                pagination = response.get('pagination', {})
-                total = pagination.get('total', 0)
-                current_count = page_num * page_size
-                
-                if current_count >= total:
+                # Check if we have more pages based on the number of items returned
+                # If we got fewer items than page_size, we've reached the end
+                if len(work_item_ids) < page_size:
                     break
                 
                 page_num += 1
+                
+                # Safety check to prevent infinite loops
+                if page_num > 100:  # Maximum 20,000 items
+                    logger.warning(f"Reached maximum page limit (100) for view {view_id}")
+                    break
                 
             except Exception as e:
                 logger.error(f"Error getting work items in view {view_id} page {page_num}: {e}")
