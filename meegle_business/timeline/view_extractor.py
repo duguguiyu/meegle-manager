@@ -693,7 +693,7 @@ class ViewTimelineExtractor(TimelineExtractor):
     
     def _get_user_email_from_key(self, user_key: str) -> str:
         """
-        Get user email from user key
+        Get user email from user key with fallback to server lookup
         
         Args:
             user_key: User key
@@ -703,12 +703,33 @@ class ViewTimelineExtractor(TimelineExtractor):
         """
         users = self.get_users_cache()
         
-        # Look for user by key
+        # Look for user by key in cache first
         for user_id, user in users.items():
             if user_id == user_key or user.get('key') == user_key:
                 return user.get('email', user.get('emailAddress', f"{user_key}@company.com"))
         
-        # Fallback
+        # If not found in cache, try to fetch from server
+        logger.debug(f"User {user_key} not found in cache, attempting server lookup")
+        try:
+            # Try to get user details from server
+            user_details = self.sdk.users.get_user_details([user_key])
+            if user_details:
+                # Update cache with new user data
+                for user in user_details:
+                    user_key_from_api = user.get('user_key')
+                    if user_key_from_api:
+                        users[user_key_from_api] = user
+                        logger.debug(f"Added user {user_key_from_api} to cache from server")
+                        
+                        # If this is the user we're looking for, return their email
+                        if user_key_from_api == user_key:
+                            return user.get('email', user.get('emailAddress', f"{user_key}@company.com"))
+            
+        except Exception as e:
+            logger.debug(f"Failed to fetch user {user_key} from server: {e}")
+        
+        # Final fallback if server lookup also fails
+        logger.debug(f"Using fallback email for user {user_key}")
         return f"{user_key}@company.com"
     
     def _parse_schedule_dates(self, start_date: Any, end_date: Any) -> Tuple[Optional[datetime], Optional[datetime]]:

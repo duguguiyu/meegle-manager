@@ -1,0 +1,85 @@
+Get User Details
+Introduction​
+This interface is used to obtain detailed information of specific users; the corresponding permission requests are classified under Developer Platform - Permissions​
+To get more information: Permission Management​
+​
+Only information from the plugin collaborators could be queried if you use a virtual token. If you want to query other users, please use an official token.​
+​
+​
+Request Method​
+ ​
+POST ​
+ ​
+Request Address​
+ ​
+/open_api/user/query ​
+ ​
+Request Header​
+ ​
+ ​
+How to get and fill request header ​
+ (This interface does not need to pass user_key when using plugin identity credentials.) ​
+ ​
+Request Parameters​
+ ​
+ ​
+ ​
+Parameter Type​
+Parameter Name​
+ ​
+Required or not​
+Value Type​
+​
+Description​
+ ​
+Request body parameters user_keys, out_ids, emails. Just choose one of the three to fill in. (Up to 100 inquiries a time) ​
+ ​
+ ​
+​
+user_keys ​
+No ​
+list<string> ​
+Array of userkeys ​
+out_ids ​
+No ​
+list<string> ​
+Array of larkUnionId ​
+emails ​
+​
+No ​
+list<string> ​
+Email array. Make sure the enterprise email address mailbox needs to be linked to Lark. ​
+tenant_key ​
+No ​
+string ​
+ The tenant saas_tenant_key where the user to be queried is located, applicable when querying emails ​Response Body​
+Request Form​
+​
+ { ​
+    "user_keys":["7012514555133xxxx"]​
+}​
+​
+Return Format​
+​
+{ ​
+    "data":[ ​
+        { ​
+            "user_key":"7012514555133xxxx",//userkey ​
+            "username":"7012514555133xxxx",//userkey ​
+            "email":"zhangsan@test.com",//email address​
+            "name_cn":"张三",//Chinese name of users​
+            "name_en":"ZhangSan",//English name​
+            "avatar_url":"https://s1-imfile.feishucdn.com/static-resource/xxxx",//link to profile picture​
+            "out_id":"on_95bed66540xxxxxxxx3059",  // union_id of larkUnion ​
+            "status":"activated" //EG：resigned；frozen；activated​
+        } ​
+    ], ​
+    "err": {}, ​
+    "err_msg": "", ​
+    "err_code": 0 ​
+}​
+​
+​
+Get the out_ids of Lark users, please refer to LARK Open Platform interface document​
+How to get user ID(via phone number or email) (Currently only Chinese guidedance is available)​
+How to get single ID information (Currently only Chinese guidedance is available)
