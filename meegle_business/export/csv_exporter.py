@@ -38,29 +38,12 @@ class CSVExporter:
         # Ensure output directory exists
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # CSV headers (English)
-        self.headers_en = [
-            '', 'Project code', 'Project type', 'Project status', 'Project name',
-            'Activity code', 'Market /region', 'Category / function', 'Entity',
-            'Member email', 'Member name', 'Date', 'Work load / hours charged', 'Description / comments',
-            'Submission date', "Manager's sign-off", 'Remark', '', '', ''
-        ]
-        
-        # CSV headers (Chinese)
-        self.headers_cn = [
-            '', '项目代码', '项目类型', '项目状态', '项目描述',
-            '活动代码', '市场', '产品线', '事业部',
-            '员工邮箱', '员工姓名', '日期', '耗时', '工作内容具体描述',
-            '提交日期', '审批记录', '备注', '', '', ''
-        ]
-        
-        # Example row
-        self.example_row = [
-            '', 'e.g. PRD-PH-ADVI-ICS-001-V3', 'Project / Product',
-            '[Project status]', '[Project description]',
-            'Development / Maintenance', 'Region', 'Function',
-            'Entity', '[Email]', '[Name]', '[Date]', '[Hours]', '[Description]',
-            '[Submit date]', '[Manager signoff]', '[Remark]', '', '', ''
+        # Combined headers (English + Chinese)
+        self.headers_combined = [
+            'Project code / 项目代码', 'Project type / 项目类型', 'Project status / 项目状态', 'Project name / 项目描述',
+            'Activity code / 活动代码', 'Market region / 市场', 'Category function / 产品线', 'Entity / 事业部',
+            'Member email / 员工邮箱', 'Member name / 员工姓名', 'Date / 日期', 'Work load hours / 耗时', 'Description / 工作内容具体描述',
+            'Submission date / 提交日期', "Manager's sign-off / 审批记录", 'Remark / 备注'
         ]
     
     def export_timeline_to_csv(self, timeline_data: TimelineData, 
@@ -144,22 +127,13 @@ class CSVExporter:
     
     def _write_csv_headers(self, writer: csv.writer):
         """
-        Write CSV headers and template rows
+        Write CSV headers
         
         Args:
             writer: CSV writer object
         """
-        # Empty row
-        writer.writerow([''] * len(self.headers_en))
-        
-        # English headers
-        writer.writerow(self.headers_en)
-        
-        # Chinese headers  
-        writer.writerow(self.headers_cn)
-        
-        # Example row
-        writer.writerow(self.example_row)
+        # Combined headers (English + Chinese)
+        writer.writerow(self.headers_combined)
     
     def _create_empty_csv(self, filepath: Path):
         """

@@ -393,6 +393,10 @@ class ViewTimelineExtractor(TimelineExtractor):
                     # Get activity code from story template
                     activity_code = self._get_activity_code_from_template(work_item)
                     
+                    # Get work item creation date for submission_date
+                    created_at = work_item.get('created_at')
+                    submission_date = self._format_timestamp_to_date(created_at) if created_at else datetime.now().strftime('%Y-%m-%d')
+                    
                     # Create timeline entry
                     entry = TimelineEntry(
                         date=current_date.strftime('%Y-%m-%d'),
@@ -407,7 +411,7 @@ class ViewTimelineExtractor(TimelineExtractor):
                         member_email=user_email,
                         member_name=user_name,
                         work_load_hours=daily_hours_per_person,
-                        submission_date=datetime.now().strftime('%Y-%m-%d'),
+                        submission_date=submission_date,
                         description=work_item.get('name', ''),  # Use story name
                         manager_signoff='',
                         remark=f"@https://project.larksuite.com/advance_ai/story/detail/{work_item.get('id')}"
@@ -790,6 +794,46 @@ class ViewTimelineExtractor(TimelineExtractor):
             logger.error(f"Error parsing timestamp {timestamp}: {e}")
         
         return None
+    
+    def _format_timestamp_to_date(self, timestamp: Any) -> str:
+        """
+        Format timestamp to date string (YYYY-MM-DD)
+        
+        Args:
+            timestamp: Timestamp value (int, float, or string)
+            
+        Returns:
+            Date string in YYYY-MM-DD format
+        """
+        try:
+            if isinstance(timestamp, (int, float)):
+                # Handle milliseconds
+                if timestamp > 1e10:
+                    timestamp = timestamp / 1000
+                dt = datetime.fromtimestamp(timestamp)
+                return dt.strftime('%Y-%m-%d')
+            elif isinstance(timestamp, str):
+                # Try to parse string timestamp
+                try:
+                    # Try as timestamp first
+                    ts = float(timestamp)
+                    if ts > 1e10:
+                        ts = ts / 1000
+                    dt = datetime.fromtimestamp(ts)
+                    return dt.strftime('%Y-%m-%d')
+                except ValueError:
+                    # Try various string formats
+                    for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S']:
+                        try:
+                            dt = datetime.strptime(timestamp, fmt)
+                            return dt.strftime('%Y-%m-%d')
+                        except ValueError:
+                            continue
+        except Exception as e:
+            logger.debug(f"Error formatting timestamp {timestamp}: {e}")
+        
+        # Fallback to current date
+        return datetime.now().strftime('%Y-%m-%d')
     
     def _calculate_date_range(self, entries: List[TimelineEntry]) -> str:
         """

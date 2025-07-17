@@ -134,7 +134,6 @@ class TimelineEntry:
             List of strings representing CSV row
         """
         return [
-            '',  # Empty first column
             self.project_code,
             self.project_type,
             self.project_status,
@@ -150,8 +149,7 @@ class TimelineEntry:
             self.description,
             self.submission_date,
             self.manager_signoff,
-            self.remark,
-            '', '', ''  # Empty trailing columns
+            self.remark
         ]
 
 
