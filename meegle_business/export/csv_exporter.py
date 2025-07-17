@@ -42,7 +42,7 @@ class CSVExporter:
         self.headers_en = [
             '', 'Project code', 'Project type', 'Project status', 'Project name',
             'Activity code', 'Market /region', 'Category / function', 'Entity',
-            'Member email', 'Date', 'Work load / hours charged', 'Description / comments',
+            'Member email', 'Member name', 'Date', 'Work load / hours charged', 'Description / comments',
             'Submission date', "Manager's sign-off", 'Remark', '', '', ''
         ]
         
@@ -50,7 +50,7 @@ class CSVExporter:
         self.headers_cn = [
             '', '项目代码', '项目类型', '项目状态', '项目描述',
             '活动代码', '市场', '产品线', '事业部',
-            '员工邮箱', '日期', '耗时', '工作内容具体描述',
+            '员工邮箱', '员工姓名', '日期', '耗时', '工作内容具体描述',
             '提交日期', '审批记录', '备注', '', '', ''
         ]
         
@@ -59,7 +59,7 @@ class CSVExporter:
             '', 'e.g. PRD-PH-ADVI-ICS-001-V3', 'Project / Product',
             '[Project status]', '[Project description]',
             'Development / Maintenance', 'Region', 'Function',
-            'Entity', '[Email]', '[Date]', '[Hours]', '[Description]',
+            'Entity', '[Email]', '[Name]', '[Date]', '[Hours]', '[Description]',
             '[Submit date]', '[Manager signoff]', '[Remark]', '', '', ''
         ]
     

@@ -383,8 +383,8 @@ class ViewTimelineExtractor(TimelineExtractor):
         while current_date <= end_dt:
             for owner_key in owners:
                 try:
-                    # Get user email from owner key
-                    user_email = self._get_user_email_from_key(owner_key)
+                    # Get user email and name from owner key
+                    user_email, user_name = self._get_user_info_from_key(owner_key)
                     
                     # Parse project code components
                     project_code = project_info.get('project_code', 'Unknown')
@@ -405,6 +405,7 @@ class ViewTimelineExtractor(TimelineExtractor):
                         category_function=category_function,
                         entity=entity,
                         member_email=user_email,
+                        member_name=user_name,
                         work_load_hours=daily_hours_per_person,
                         submission_date=datetime.now().strftime('%Y-%m-%d'),
                         description=work_item.get('name', ''),  # Use story name
@@ -691,22 +692,24 @@ class ViewTimelineExtractor(TimelineExtractor):
         
         return None
     
-    def _get_user_email_from_key(self, user_key: str) -> str:
+    def _get_user_info_from_key(self, user_key: str) -> tuple[str, str]:
         """
-        Get user email from user key with fallback to server lookup
+        Get user email and name from user key with fallback to server lookup
         
         Args:
             user_key: User key
             
         Returns:
-            User email address
+            Tuple of (email, name)
         """
         users = self.get_users_cache()
         
         # Look for user by key in cache first
         for user_id, user in users.items():
             if user_id == user_key or user.get('key') == user_key:
-                return user.get('email', user.get('emailAddress', f"{user_key}@company.com"))
+                email = user.get('email', user.get('emailAddress', f"{user_key}@company.com"))
+                name = user.get('name_cn', user.get('name', user_key))
+                return email, name
         
         # If not found in cache, try to fetch from server
         logger.debug(f"User {user_key} not found in cache, attempting server lookup")
@@ -721,16 +724,18 @@ class ViewTimelineExtractor(TimelineExtractor):
                         users[user_key_from_api] = user
                         logger.debug(f"Added user {user_key_from_api} to cache from server")
                         
-                        # If this is the user we're looking for, return their email
+                        # If this is the user we're looking for, return their email and name
                         if user_key_from_api == user_key:
-                            return user.get('email', user.get('emailAddress', f"{user_key}@company.com"))
+                            email = user.get('email', user.get('emailAddress', f"{user_key}@company.com"))
+                            name = user.get('name_cn', user.get('name', user_key))
+                            return email, name
             
         except Exception as e:
             logger.debug(f"Failed to fetch user {user_key} from server: {e}")
         
         # Final fallback if server lookup also fails
-        logger.debug(f"Using fallback email for user {user_key}")
-        return f"{user_key}@company.com"
+        logger.debug(f"Using fallback email and name for user {user_key}")
+        return f"{user_key}@company.com", user_key
     
     def _parse_schedule_dates(self, start_date: Any, end_date: Any) -> Tuple[Optional[datetime], Optional[datetime]]:
         """

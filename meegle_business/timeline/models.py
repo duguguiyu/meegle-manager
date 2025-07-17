@@ -24,6 +24,7 @@ class TimelineEntry:
     category_function: str      # 产品线
     entity: str                 # 事业部
     member_email: str           # 员工邮箱
+    member_name: str            # 员工姓名
     date: str                   # 日期 (YYYY-MM-DD)
     work_load_hours: float      # 耗时 (小时)
     description: str            # 工作内容具体描述
@@ -47,7 +48,7 @@ class TimelineEntry:
         # Ensure required fields are not None
         for field in ['project_type', 'project_status', 'project_name', 
                      'activity_code', 'market_region', 'category_function', 
-                     'entity', 'member_email', 'description', 
+                     'entity', 'member_email', 'member_name', 'description', 
                      'submission_date', 'manager_signoff', 'remark']:
             if getattr(self, field) is None:
                 setattr(self, field, '')
@@ -73,6 +74,7 @@ class TimelineEntry:
             category_function=data.get('category_function', ''),
             entity=data.get('entity', ''),
             member_email=data.get('member_email', ''),
+            member_name=data.get('member_name', ''),
             date=data.get('date', ''),
             work_load_hours=data.get('work_load_hours', 0.0),
             description=data.get('description', ''),
@@ -98,6 +100,7 @@ class TimelineEntry:
             'category_function': self.category_function,
             'entity': self.entity,
             'member_email': self.member_email,
+            'member_name': self.member_name,
             'date': self.date,
             'work_load_hours': self.work_load_hours,
             'description': self.description,
@@ -141,6 +144,7 @@ class TimelineEntry:
             self.category_function,
             self.entity,
             self.member_email,
+            self.member_name,
             self.date,
             str(self.work_load_hours),
             self.description,
