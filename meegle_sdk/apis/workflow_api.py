@@ -18,6 +18,8 @@ class WorkflowAPI:
     - Get workflow details for work items
     - Query workflow nodes and connections
     - Extract workflow scheduling information
+    - Update work items with field modifications
+    - Create field value pairs for updates
     """
     
     def __init__(self, client: BaseAPIClient):
@@ -201,4 +203,151 @@ class WorkflowAPI:
                     schedules.append(schedule_info)
         
         logger.debug(f"Extracted {len(schedules)} schedules from node {node.get('id')}")
-        return schedules 
+        return schedules
+    
+    def update_work_item(self, work_item_id: int, work_item_type_key: str, 
+                        update_fields: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Update a work item with specified fields
+        
+        Args:
+            work_item_id: Work item ID
+            work_item_type_key: Work item type key
+            update_fields: List of field value pairs to update
+                Each item should contain:
+                - field_key or field_alias: Field identifier
+                - field_value: New field value
+                
+        Returns:
+            Dictionary containing update response
+            
+        Example:
+            update_fields = [
+                {
+                    "field_key": "field_184c63",
+                    "field_value": 1646409600000
+                },
+                {
+                    "field_key": "role_owners",
+                    "field_value": [
+                        {
+                            "role": "rd",
+                            "owners": ["testuser"]
+                        }
+                    ]
+                }
+            ]
+        """
+        logger.info(f"Updating work item {work_item_id} of type {work_item_type_key}")
+        
+        endpoint = f"{self.client.project_key}/work_item/{work_item_type_key}/{work_item_id}"
+        
+        # Prepare request body
+        request_body = {
+            "update_fields": update_fields
+        }
+        
+        try:
+            data = self.client.put(endpoint, json_data=request_body)
+            logger.info(f"Successfully updated work item {work_item_id}")
+            return data
+            
+        except Exception as e:
+            logger.error(f"Failed to update work item {work_item_id}: {e}")
+            raise
+    
+    def create_field_value_pair(self, field_key: str = None, field_alias: str = None, 
+                               field_value: Any = None) -> Dict[str, Any]:
+        """
+        Create a field value pair for work item updates
+        
+        Args:
+            field_key: Field key (must provide either field_key or field_alias)
+            field_alias: Field alias (must provide either field_key or field_alias)
+            field_value: Field value (required)
+            
+        Returns:
+            Dictionary containing field value pair
+            
+        Raises:
+            ValueError: If neither field_key nor field_alias is provided, or if field_value is None
+        """
+        if not field_key and not field_alias:
+            raise ValueError("Either field_key or field_alias must be provided")
+        
+        if field_value is None:
+            raise ValueError("field_value must be provided")
+        
+        field_pair = {"field_value": field_value}
+        
+        if field_key:
+            field_pair["field_key"] = field_key
+        else:
+            field_pair["field_alias"] = field_alias
+            
+        return field_pair
+    
+    def create_role_owners_field(self, role_owners: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create a role_owners field value pair
+        
+        Args:
+            role_owners: List of role owner mappings
+                Each item should contain:
+                - role: Role name
+                - owners: List of user keys
+                
+        Returns:
+            Dictionary containing role_owners field value pair
+            
+        Example:
+            role_owners = [
+                {
+                    "role": "rd",
+                    "owners": ["user1", "user2"]
+                },
+                {
+                    "role": "pm",
+                    "owners": ["user3"]
+                }
+            ]
+        """
+        return self.create_field_value_pair(
+            field_key="role_owners",
+            field_value=role_owners
+        )
+    
+    def update_work_item_fields(self, work_item_id: int, work_item_type_key: str,
+                               **field_updates) -> Dict[str, Any]:
+        """
+        Update work item fields using keyword arguments
+        
+        Args:
+            work_item_id: Work item ID
+            work_item_type_key: Work item type key
+            **field_updates: Field updates as keyword arguments
+                Key should be field_key or field_alias
+                Value should be the field value
+                
+        Returns:
+            Dictionary containing update response
+            
+        Example:
+            api.update_work_item_fields(
+                work_item_id=123,
+                work_item_type_key="task",
+                field_184c63=1646409600000,
+                title="New Title",
+                description="New Description"
+            )
+        """
+        update_fields = []
+        
+        for field_key, field_value in field_updates.items():
+            field_pair = self.create_field_value_pair(
+                field_key=field_key,
+                field_value=field_value
+            )
+            update_fields.append(field_pair)
+        
+        return self.update_work_item(work_item_id, work_item_type_key, update_fields)
