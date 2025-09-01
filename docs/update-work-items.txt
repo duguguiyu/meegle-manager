@@ -1,0 +1,93 @@
+Update Work Items
+Introduction​
+This interface is used to update a work item of a specific type in a specific project space; fields that are subject to change can be obtained through Get Work Item Creation Metadata. The corresponding permission requests are classified under Developer Platform - Permissions​
+To get more information:  Permission Management​
+​
+​
+Request Method​
+PUT​
+Request Address​
+/open_api/:project_key/work_item/:work_item_type_key/:work_item_id​
+Request header​
+How to get and fill request header ​Request Header ​
+​
+​
+Request Parameters​
+Parameter Type​
+Parameter Name​
+Required or not​
+Value Type​
+Description​
+Path parameters​
+work_item_id​
+Yes​
+int64​
+Work Item ID​
+work_item_type_key​
+Yes​
+string​
+Work item type, refer to Get Work Item Types in Space​
+project_key​
+Yes​
+string​
+Space id (project_key), or space domain name (simple_name)​
+Request body parameters​
+update_fields​
+Yes​
+list< FieldValuePair>​
+The list of fields to be updated, which will completely cover the old version; fields that are subject to change can be obtained through Get Work Item Creation Metadata​
+Refer to Query parameter formats and examples for field formats​
+Request Form​
+​
+​
+{​
+    "update_fields":[​
+        {​
+            "field_key":"field_184c63", //field key，must select either field key or field_alias​
+            "field_value":1646409600000 //field value must be filled out​
+        }，​
+        {​
+            "field_key": "role_owners", ​
+            "field_value":[​
+                {​
+                   "role":"rd",​
+                   "owners":["testuser"]// list of user_key​
+                }​
+            ]​
+        }​
+    ]​
+}​
+​
+​
+Return Format​
+​
+​
+{​
+    "err_code": 0,​
+    "err_msg": "",​
+    "err": {},​
+    "data": {}​
+}​
+​
+​
+​
+Note​
+When the request parameters include Cascading single/multiple selection type,the requested option must match the selectable levels in field management.​
+​
+​​
+
+​
+​
+field_value must be the field_id of corresponding options, not the field name.​
+​
+​​
+
+​
+​
+For role_owners creating or updating the work item in the request, only those whose settings are "do not allow users to add or delete" will match the default value set in space configuration; otherwise, an empty value of the creator/the role last updating the work item will be returned when users do not request this field.​
+​
+​​
+
+​
+​
+Templates and poll field modifications are not supported.
