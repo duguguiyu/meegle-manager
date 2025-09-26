@@ -155,6 +155,57 @@ class WorkItemAPI:
             logger.error(f"Failed to get work item {work_item_id}: {e}")
             return None
 
+    def get_work_item_details(self, work_item_ids: List[int], work_item_type_key: str = "story") -> Dict[str, Any]:
+        """
+        Get detailed information for multiple work items using the query endpoint
+        
+        Args:
+            work_item_ids: List of work item IDs to retrieve (max 50 per request)
+            work_item_type_key: Work item type key (e.g., "story", "project")
+            
+        Returns:
+            Dictionary containing work item details with 'data' key
+        """
+        if not work_item_ids:
+            return {'data': []}
+            
+        # Convert to strings and limit to 50 items per API documentation
+        str_ids = [str(wid) for wid in work_item_ids[:50]]
+        
+        try:
+            # Use the query endpoint for getting work item details
+            endpoint = f"{self.client.project_key}/work_item/{work_item_type_key}/query"
+            
+            # Use POST method with work item IDs in the request body
+            json_data = {
+                "work_item_ids": str_ids,
+                "expand": {
+                    "need_workflow": False,
+                    "need_multi_text": False,
+                    "relation_fields_detail": True,
+                    "need_user_detail": False
+                }
+            }
+            
+            data = self.client.post(
+                endpoint=endpoint,
+                json_data=json_data,
+                description=f"fetch {len(str_ids)} work items of type {work_item_type_key}",
+            )
+            
+            # Ensure we return the expected format
+            if isinstance(data, dict) and 'data' in data:
+                return data
+            elif isinstance(data, list):
+                return {'data': data}
+            else:
+                logger.warning(f"Unexpected response format for work item details")
+                return {'data': []}
+            
+        except Exception as e:
+            logger.error(f"Failed to get work item details for {len(str_ids)} items: {e}")
+            return {'data': []}
+
     def get_all_work_items(self, work_item_type_keys: List[str],
                           page_size: int = 100) -> List[Dict[str, Any]]:
         """
@@ -463,4 +514,72 @@ class WorkItemAPI:
                 
         except Exception as e:
             logger.error(f"Failed to get work item types: {e}")
-            return [] 
+            return []
+    
+    def create_work_item(self, work_item_type_key: str, name: str, 
+                        field_value_pairs: List[Dict[str, Any]] = None,
+                        template_id: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Create a new work item
+        
+        Args:
+            work_item_type_key: Work item type key
+            name: Work item name (required)
+            field_value_pairs: List of field value pairs for the work item
+            template_id: Optional template ID to use
+            
+        Returns:
+            Dictionary containing the created work item ID and response
+            
+        Example:
+            field_value_pairs = [
+                {
+                    "field_key": "description",
+                    "field_value": "Project description"
+                },
+                {
+                    "field_key": "role_owners",
+                    "field_value": [
+                        {
+                            "role": "owner",
+                            "owners": ["user_key_123"]
+                        }
+                    ]
+                }
+            ]
+        """
+        logger.info(f"Creating work item of type {work_item_type_key} with name '{name}'")
+        
+        endpoint = f"{self.client.project_key}/work_item/create"
+        
+        # Prepare request body
+        request_body = {
+            "work_item_type_key": work_item_type_key,
+            "name": name
+        }
+        
+        if field_value_pairs:
+            request_body["field_value_pairs"] = field_value_pairs
+            
+        if template_id:
+            request_body["template_id"] = template_id
+        
+        try:
+            data = self.client.post(endpoint, json_data=request_body)
+            
+            # Handle response format - API returns work item ID directly as integer
+            if isinstance(data, int):
+                work_item_id = data
+                logger.info(f"Successfully created work item with ID: {work_item_id}")
+                return {"data": work_item_id, "success": True}
+            elif isinstance(data, dict):
+                work_item_id = data.get('data')
+                logger.info(f"Successfully created work item with ID: {work_item_id}")
+                return data
+            else:
+                logger.warning(f"Unexpected response format: {type(data)}")
+                return data
+            
+        except Exception as e:
+            logger.error(f"Failed to create work item: {e}")
+            raise 
