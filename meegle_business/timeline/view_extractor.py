@@ -625,8 +625,8 @@ class ViewTimelineExtractor(TimelineExtractor):
         Returns:
             Dictionary with project information
         """
-        # Look for related project field (field_c0a56e as confirmed by debugging)
-        project_id = self._extract_field_value(work_item, ['field_c0a56e', 'related_project', 'project_id'])
+        # Look for related project field - prioritize new project field (field_df5ff0) over old (field_c0a56e)
+        project_id = self._extract_field_value(work_item, ['field_df5ff0', 'field_c0a56e', 'related_project', 'project_id'])
         
         if project_id and project_id != 'N/A':
             # Check if we've already failed to get this project (avoid retries)
@@ -673,9 +673,9 @@ class ViewTimelineExtractor(TimelineExtractor):
                 project = self._work_item_cache[project_id]
                 logger.debug(f"Retrieved project {project_id} from cache")
             else:
-                # Get project details from API using correct project type ID
+                # Get project details from API using new project type ID
                 logger.debug(f"Fetching project {project_id} from API")
-                project = self.sdk.work_items.get_work_item_by_id(project_id, "642ec373f4af608bb3cb1c90")
+                project = self.sdk.work_items.get_work_item_by_id(project_id, "68afee24c92ef633f847d304")
                 if project:
                     self._work_item_cache[project_id] = project
                     logger.debug(f"Cached project {project_id}")

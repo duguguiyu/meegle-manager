@@ -21,7 +21,7 @@ class WorkItemAPI:
     
     Note:
         Work item type IDs:
-        - Projects: 642ec373f4af608bb3cb1c90
+        - Projects: 68afee24c92ef633f847d304 (new project type after migration)
         - Stories/Features: story
     """
     
@@ -41,7 +41,7 @@ class WorkItemAPI:
         
         Args:
             work_item_type_keys: List of work item type keys (required)
-                - ["642ec373f4af608bb3cb1c90"] for projects
+                - ["68afee24c92ef633f847d304"] for projects (new project type after migration)
                 - ["story"] for features/stories
             page_size: Number of items per page (max 200)
             page_num: Page number starting from 1 (default is 1)
@@ -264,13 +264,13 @@ class WorkItemAPI:
 
     def get_projects(self) -> List[Dict[str, Any]]:
         """
-        Get all project work items
+        Get all project work items (using new project type after migration)
         
         Returns:
             List of project work items
         """
         logger.info("Fetching all project work items")
-        return self.get_all_work_items(work_item_type_keys=["642ec373f4af608bb3cb1c90"])
+        return self.get_all_work_items(work_item_type_keys=["68afee24c92ef633f847d304"])
 
     def get_stories(self) -> List[Dict[str, Any]]:
         """
