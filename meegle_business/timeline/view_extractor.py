@@ -688,7 +688,7 @@ class ViewTimelineExtractor(TimelineExtractor):
                     'project_code': self._extract_field_value(project, ['name'], project_id),
                     'project_type': self._extract_field_value(project, ['template'], 'Product'),
                     'project_status': self._extract_field_value(project, ['work_item_status'], 'Open'),
-                    'project_name': self._extract_field_value(project, ['field_28829a'], '')  # Keep empty if not available
+                    'project_name': self._extract_field_value(project, ['description'], '')  # Use description field
                 }
             
         except Exception as e:

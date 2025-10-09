@@ -42,7 +42,7 @@ class CSVExporter:
         self.headers_combined = [
             'Project code / 项目代码', 'Project type / 项目类型', 'Project status / 项目状态', 'Project name / 项目描述',
             'Activity code / 活动代码', 'Market region / 市场', 'Category function / 产品线', 'Entity / 事业部',
-            'Member email / 员工邮箱', 'Member name / 员工姓名', 'Date / 日期', 'Work load hours / 耗时', 'Description / 工作内容具体描述',
+            'Member email / 员工邮箱', 'Member name / 员工姓名', 'Date / 日期', 'Workload days / 耗时', 'Description / 工作内容具体描述',
             'Submission date / 提交日期', "Manager's sign-off / 审批记录", 'Remark / 备注'
         ]
     

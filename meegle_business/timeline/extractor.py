@@ -185,6 +185,15 @@ class TimelineExtractor:
     
     def _extract_field_value(self, work_item: Dict[str, Any], field_names: List[str], default: str = 'N/A') -> str:
         """Extract field value from work item, trying multiple possible field names"""
+        # Status mapping for work_item_status state_key values
+        STATUS_MAPPING = {
+            'started': 'Start',
+            'k7QGaCfOG': 'Prepared',
+            'O15-OU4wt': 'Reviewing',
+            'spFqSHC3J': 'Started',
+            'iVUV_XpZq': 'Finished',
+            'closed': 'Terminated'
+        }
         # Try direct fields first
         for field_name in field_names:
             if field_name in work_item:
@@ -194,9 +203,15 @@ class TimelineExtractor:
                     # For template field, we might want to use a default value
                     if field_name == 'template':
                         return 'Product'  # Default template type
-                    # For work_item_status, extract the state_key
-                    elif field_name == 'work_item_status' and 'state_key' in value:
-                        return value['state_key']
+                    # For work_item_status, prefer name/value over state_key, with mapping
+                    elif field_name == 'work_item_status':
+                        if 'name' in value:
+                            return value['name']
+                        elif 'value' in value:
+                            return str(value['value'])
+                        elif 'state_key' in value:
+                            state_key = value['state_key']
+                            return STATUS_MAPPING.get(state_key, state_key)
                     # For other dict values, try to get 'name' field
                     elif 'name' in value:
                         return value['name']
@@ -225,9 +240,15 @@ class TimelineExtractor:
                         # For template field, we might want to use a default value
                         if field_name == 'template':
                             return 'Product'  # Default template type
-                        # For work_item_status, extract the state_key
-                        elif field_name == 'work_item_status' and 'state_key' in value:
-                            return value['state_key']
+                        # For work_item_status, prefer name/value over state_key, with mapping
+                        elif field_name == 'work_item_status':
+                            if 'name' in value:
+                                return value['name']
+                            elif 'value' in value:
+                                return str(value['value'])
+                            elif 'state_key' in value:
+                                state_key = value['state_key']
+                                return STATUS_MAPPING.get(state_key, state_key)
                         # For other dict values, try to get 'name' field
                         elif 'name' in value:
                             return value['name']
